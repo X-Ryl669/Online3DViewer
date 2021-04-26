@@ -22,6 +22,11 @@ OV.Website = class
     {
         let canvas = $('<canvas>').appendTo (this.parameters.viewerDiv);
         this.viewer.Init (canvas.get (0));
+        this.viewer.UpdateEdgesSettings ({
+            showEdges: this.importSettings.showEdges, 
+            edgesAngle: this.importSettings.edgesAngle, 
+            edgesColor: this.importSettings.edgesColor
+        });
         this.ShowViewer (false);
         this.hashHandler.SetEventListener (this.OnHashChange.bind (this));
 
@@ -195,7 +200,7 @@ OV.Website = class
                 return;
             }
             let settings = new OV.ImportSettings ();
-            settings.defaultColor = this.importSettings.defaultColor;
+            Object.assign(settings, this.importSettings);
             let color = this.hashHandler.GetColorFromHash ();
             if (color !== null) {
                 settings.defaultColor = color;
@@ -308,10 +313,10 @@ OV.Website = class
         });
 
 
-        if (OV.FeatureSet.SetDefaultColor) {
+        if (OV.FeatureSet.SetDefaultColor || OV.FeatureSet.SetShowEdge) {
             AddSeparator (this.toolbar, true);
             AddButton (this.toolbar, 'settings', 'Settings', true, function () {
-                obj.dialog = OV.ShowSettingsDialog (obj.importSettings, function (dialogSettings) {
+                obj.dialog = OV.ShowSettingsDialog (obj.importSettings, function (dialogSettings, edgesSettings) {
                     let reload = false;
                     if (!OV.ColorIsEqual (obj.importSettings.defaultColor, dialogSettings.defaultColor)) {
                         obj.importSettings.defaultColor = dialogSettings.defaultColor;
@@ -320,6 +325,10 @@ OV.Website = class
                     if (reload) {
                         obj.ReloadFiles ();
                     }
+                    Object.assign(obj.importSettings, edgesSettings);
+                    obj.viewer.UpdateEdgesSettings (edgesSettings);
+                    obj.viewer.ToggleEdges (false);
+                    obj.viewer.ToggleEdges (edgesSettings.showEdges);
                 });
             });
         }
