@@ -32,6 +32,7 @@ def CompressFiles (inputFiles, outputFile):
 			parameters.append ('--js=' + os.path.join ('..', inputFile))
 	parameters.append ('--js_output_file=' + outputFile)
 	result = Tools.RunCommand ('google-closure-compiler', parameters)
+
 	if result != 0:
 		return False
 	return True

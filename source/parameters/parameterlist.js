@@ -85,6 +85,14 @@ OV.ParameterConverter =
         if (str === null || str.length === 0) {
             return null;
         }
+        if (str[0] === '#') {
+            const bigint = parseInt (str.substr (1), 16);
+            return new OV.Color (
+                (bigint >> 16) & 255,
+                (bigint >> 8) & 255,
+                bigint & 255
+            );
+        }
         let paramParts = str.split (',');
         if (paramParts.length !== 3) {
             return null;
