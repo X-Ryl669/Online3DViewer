@@ -249,8 +249,7 @@ OV.Navigation = class
 
 		if (this.canvas.addEventListener) {
 			this.canvas.addEventListener ('mousedown', this.OnMouseDown.bind (this));
-			this.canvas.addEventListener ('DOMMouseScroll', this.OnMouseWheel.bind (this));
-			this.canvas.addEventListener ('mousewheel', this.OnMouseWheel.bind (this));
+			this.canvas.addEventListener ('wheel', this.OnMouseWheel.bind (this));
 			this.canvas.addEventListener ('touchstart', this.OnTouchStart.bind (this));
 			this.canvas.addEventListener ('touchmove', this.OnTouchMove.bind (this));
 			this.canvas.addEventListener ('touchend', this.OnTouchEnd.bind (this));
@@ -487,6 +486,8 @@ OV.Navigation = class
 			delta = -params.detail;
 		} else if (params.wheelDelta) {
 			delta = params.wheelDelta / 40;
+		} else if (params.deltaY) {
+			delta = -params.deltaY / 40;
 		}
 	
 		let ratio = 0.1;
