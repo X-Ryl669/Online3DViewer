@@ -215,7 +215,7 @@ OV.Website = class
     UpdateMeasureTool (isEnabled, button)
     {
         if (isEnabled && this.faceSelector === null) {
-            this.faceSelector = new OV.FaceSelector (this.viewer, button, this.menu.infoPanel);
+            this.faceSelector = new OV.FaceSelector (this.viewer, button, this.navigator.infoPanel);
         } else if (!isEnabled && this.faceSelector !== null) {
             this.faceSelector.Dispose (); 
             this.faceSelector = null;

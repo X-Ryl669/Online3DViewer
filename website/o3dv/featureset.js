@@ -1,5 +1,6 @@
 OV.FeatureSet =
 {
-    SetDefaultColor : false,
-    CalculateQuantities : false
+    SetDefaultColor : true,
+    CalculateQuantities : true,
+    SetShowEdge : true, 
 };
