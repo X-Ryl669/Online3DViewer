@@ -191,6 +191,7 @@ OV.Viewer = class
         this.settings = {
             animationSteps : 40,
         };
+        this.navCube = null;
     }
 
     UpdateEdgesSettings (settings)
@@ -217,6 +218,7 @@ OV.Viewer = class
         
         this.scene = new THREE.Scene ();
         this.geometry = new OV.ViewerGeometry (this.scene);
+        this.navCube = new OV.NavCube ({}, this);
 
         this.InitCamera ();
         this.InitLights ();
