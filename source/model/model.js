@@ -1,20 +1,10 @@
-OV.Model = class
+OV.Model = class extends OV.Element
 {
     constructor ()
     {
-        this.name = '';
+        super ();
         this.materials = [];
         this.meshes = [];
-    }
-
-    GetName ()
-    {
-        return this.name;
-    }
-
-    SetName (name)
-    {
-        this.name = name;
     }
 
     MaterialCount ()
@@ -95,11 +85,20 @@ OV.Model = class
     {
         return this.meshes[index];
     }
-
-    Clear ()
+    
+    EnumerateVertices (onVertex)
     {
-        this.name = '';
-        this.materials = [];
-        this.meshes = [];
+        for (let meshIndex = 0; meshIndex < this.meshes.length; meshIndex++) {
+            let mesh = this.meshes[meshIndex];
+            mesh.EnumerateVertices (onVertex);
+        }
+    }
+
+    EnumerateTriangles (onTriangle)
+    {
+        for (let meshIndex = 0; meshIndex < this.meshes.length; meshIndex++) {
+            let mesh = this.meshes[meshIndex];
+            mesh.EnumerateTriangles (onTriangle);
+        }
     }
 };

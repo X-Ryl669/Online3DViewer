@@ -119,7 +119,7 @@ module.exports =
         var mesh, meshObj, boundingBox;
         for (i = 0; i < model.MeshCount (); i++) {
             mesh = model.GetMesh (i);
-            boundingBox = OV.GetMeshBoundingBox (mesh);
+            boundingBox = OV.GetBoundingBox (mesh);
             meshObj = {
                 name : mesh.GetName (),
                 vertexCount : mesh.VertexCount (),
@@ -127,13 +127,108 @@ module.exports =
                 uvCount : mesh.TextureUVCount (),
                 triangleCount : mesh.TriangleCount (),
                 boundingBox : {
-                    min : [boundingBox[0].x, boundingBox[0].y, boundingBox[0].z],
-                    max : [boundingBox[1].x, boundingBox[1].y, boundingBox[1].z]
+                    min : [boundingBox.min.x, boundingBox.min.y, boundingBox.min.z],
+                    max : [boundingBox.max.x, boundingBox.max.y, boundingBox.max.z]
                 }
             };
             obj.meshes.push (meshObj);
         }
 
         return obj;
-    }
+    },
+
+    GetTwoCubesConnectingInOneVertexModel ()
+    {
+        let model = new OV.Model ();
+
+        let cube1 = OV.GenerateCuboid (null, 1.0, 1.0, 1.0);
+        model.AddMesh (cube1);
+        
+        let matrix = new OV.Matrix ().CreateTranslation (1.0, 1.0, 1.0);
+        let cube2 = OV.GenerateCuboid (new OV.GeneratorParams ().SetTransformationMatrix (matrix), 1.0, 1.0, 1.0);
+        model.AddMesh (cube2);
+
+        OV.FinalizeModel (model, function () { new OV.Material () });
+        return model;
+    },
+
+    GetTwoCubesConnectingInOneEdgeModel ()
+    {
+        let model = new OV.Model ();
+
+        let cube1 = OV.GenerateCuboid (null, 1.0, 1.0, 1.0);
+        model.AddMesh (cube1);
+        
+        let matrix = new OV.Matrix ().CreateTranslation (1.0, 0.0, 1.0);
+        let cube2 = OV.GenerateCuboid (new OV.GeneratorParams ().SetTransformationMatrix (matrix), 1.0, 1.0, 1.0);
+        model.AddMesh (cube2);
+
+        OV.FinalizeModel (model, function () { new OV.Material () });
+        return model;
+    },
+
+
+    GetTwoCubesConnectingInOneFaceModel ()
+    {
+        let model = new OV.Model ();
+
+        let cube1 = OV.GenerateCuboid (null, 1.0, 1.0, 1.0);
+        model.AddMesh (cube1);
+        
+        let matrix = new OV.Matrix ().CreateTranslation (1.0, 0.0, 0.0);
+        let cube2 = OV.GenerateCuboid (new OV.GeneratorParams ().SetTransformationMatrix (matrix), 1.0, 1.0, 1.0);
+        model.AddMesh (cube2);
+
+        OV.FinalizeModel (model, function () { new OV.Material () });
+        return model;
+    },
+    
+    GetCubeWithOneMissingFaceMesh ()
+    {
+        var cube = new OV.Mesh ();
+        cube.AddVertex (new OV.Coord3D (0.0, 0.0, 0.0));
+        cube.AddVertex (new OV.Coord3D (1.0, 0.0, 0.0));
+        cube.AddVertex (new OV.Coord3D (1.0, 1.0, 0.0));
+        cube.AddVertex (new OV.Coord3D (0.0, 1.0, 0.0));
+        cube.AddVertex (new OV.Coord3D (0.0, 0.0, 1.0));
+        cube.AddVertex (new OV.Coord3D (1.0, 0.0, 1.0));
+        cube.AddVertex (new OV.Coord3D (1.0, 1.0, 1.0));
+        cube.AddVertex (new OV.Coord3D (0.0, 1.0, 1.0));
+        cube.AddTriangle (new OV.Triangle (0, 1, 5));
+        cube.AddTriangle (new OV.Triangle (0, 5, 4));
+        cube.AddTriangle (new OV.Triangle (1, 2, 6));
+        cube.AddTriangle (new OV.Triangle (1, 6, 5));
+        cube.AddTriangle (new OV.Triangle (2, 3, 7));
+        cube.AddTriangle (new OV.Triangle (2, 7, 6));
+        cube.AddTriangle (new OV.Triangle (3, 0, 4));
+        cube.AddTriangle (new OV.Triangle (3, 4, 7));
+        cube.AddTriangle (new OV.Triangle (0, 3, 2));
+        cube.AddTriangle (new OV.Triangle (0, 2, 1));
+        return cube;
+    },    
+
+    GetTetrahedronMesh ()
+    {
+        var tetrahedron = new OV.Mesh ();
+        
+        let a = 1.0;
+        tetrahedron.AddVertex (new OV.Coord3D (+a, +a, +a));
+        tetrahedron.AddVertex (new OV.Coord3D (-a, -a, +a));
+        tetrahedron.AddVertex (new OV.Coord3D (-a, +a, -a));
+        tetrahedron.AddVertex (new OV.Coord3D (+a, -a, -a));
+        tetrahedron.AddTriangle (new OV.Triangle (0, 1, 3));
+        tetrahedron.AddTriangle (new OV.Triangle (0, 2, 1));
+        tetrahedron.AddTriangle (new OV.Triangle (0, 3, 2));
+        tetrahedron.AddTriangle (new OV.Triangle (1, 2, 3));
+
+        return tetrahedron;
+    },    
+
+    GetModelWithOneMesh (mesh)
+    {
+        var model = new OV.Model ();
+        model.AddMesh (mesh);
+        OV.FinalizeModel (model, function () { new OV.Material () });
+        return model;
+    } 
 }

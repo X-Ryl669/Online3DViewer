@@ -481,15 +481,7 @@ OV.Navigation = class
 		ev.preventDefault ();
 		let params = ev || window.event;
 		
-		let delta = 0;
-		if (params.detail) {
-			delta = -params.detail;
-		} else if (params.wheelDelta) {
-			delta = params.wheelDelta / 40;
-		} else if (params.deltaY) {
-			delta = -params.deltaY / 40;
-		}
-	
+		let delta = -params.deltaY / 40;
 		let ratio = 0.1;
 		if (delta < 0) {
 			ratio = ratio * -1.0;

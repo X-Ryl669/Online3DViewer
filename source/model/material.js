@@ -1,21 +1,3 @@
-OV.SRGBToLinear = function (component)
-{
-    if (component < 0.04045) {
-        return component * 0.0773993808;
-    } else {
-        return Math.pow (component * 0.9478672986 + 0.0521327014, 2.4);
-    }
-};
-
-OV.LinearToSRGB = function (component)
-{
-    if (component < 0.0031308) {
-        return component * 12.92;
-    } else {
-        return 1.055 * (Math.pow (component, 0.41666)) - 0.055;
-    }
-};
-
 OV.Color = class
 {
     constructor (r, g, b)
@@ -162,102 +144,38 @@ OV.Material = class
     }
 };
 
-OV.Triangle = class
+OV.SRGBToLinear = function (component)
 {
-    constructor (v0, v1, v2)
-    {
-        this.v0 = v0;
-        this.v1 = v1;
-        this.v2 = v2;
-    
-        this.n0 = null;
-        this.n1 = null;
-        this.n2 = null;
-    
-        this.u0 = null;
-        this.u1 = null;
-        this.u2 = null;
-    
-        this.mat = null;
-        this.curve = null;
+    if (component < 0.04045) {
+        return component * 0.0773993808;
+    } else {
+        return Math.pow (component * 0.9478672986 + 0.0521327014, 2.4);
     }
+};
 
-    HasVertices ()
-    {
-        return this.v0 !== null && this.v1 !== null && this.v2 !== null;
+OV.LinearToSRGB = function (component)
+{
+    if (component < 0.0031308) {
+        return component * 12.92;
+    } else {
+        return 1.055 * (Math.pow (component, 0.41666)) - 0.055;
     }
+};
 
-    HasNormals ()
-    {
-        return this.n0 !== null && this.n1 !== null && this.n2 !== null;
+OV.IntegerToHexString = function (intVal)
+{
+    let result = parseInt (intVal, 10).toString (16);
+    while (result.length < 2) {
+        result = '0' + result;
     }
-
-    HasTextureUVs ()
-    {
-        return this.u0 !== null && this.u1 !== null && this.u2 !== null;
-    }    
-
-    SetVertices (v0, v1, v2)
-    {
-        this.v0 = v0;
-        this.v1 = v1;
-        this.v2 = v2;
-        return this;
-    }
-    
-    SetNormals (n0, n1, n2)
-    {
-        this.n0 = n0;
-        this.n1 = n1;
-        this.n2 = n2;
-        return this;
-    }
-    
-    SetTextureUVs (u0, u1, u2)
-    {
-        this.u0 = u0;
-        this.u1 = u1;
-        this.u2 = u2;
-        return this;
-    }
-
-    SetMaterial (mat)
-    {
-        this.mat = mat;
-        return this;
-    }
-    
-    SetCurve (curve)
-    {
-        this.curve = curve;
-        return this;
-    }
-
-    Clone ()
-    {
-        let cloned = new OV.Triangle (this.v0, this.v1, this.v2);
-        cloned.SetNormals (this.n0, this.n1, this.n2);
-        cloned.SetTextureUVs (this.u0, this.u1, this.u2);
-        cloned.SetMaterial (this.mat);
-        cloned.SetCurve (this.curve);
-        return cloned;
-    }
+    return result;
 };
 
 OV.ColorToHexString = function (color)
 {
-    function IntegerToHex (intVal)
-    {
-        let result = parseInt (intVal, 10).toString (16);
-        while (result.length < 2) {
-            result = '0' + result;
-        }
-        return result;
-    }
-
-    let r = IntegerToHex (color.r);
-    let g = IntegerToHex (color.g);
-    let b = IntegerToHex (color.b);
+    let r = OV.IntegerToHexString (color.r);
+    let g = OV.IntegerToHexString (color.g);
+    let b = OV.IntegerToHexString (color.b);
     return r + g + b;
 };
 
@@ -276,4 +194,9 @@ OV.HexStringToColor = function (hexString)
 OV.ColorIsEqual = function (a, b)
 {
 	return a.r === b.r && a.g === b.g && a.b === b.b;
+};
+
+OV.ArrayToColor = function (arr)
+{
+	return new OV.Color (arr[0], arr[1], arr[2]);
 };

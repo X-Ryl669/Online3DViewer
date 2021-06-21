@@ -110,7 +110,6 @@ OV.ImporterPly = class extends OV.ImporterBase
     
     ClearContent ()
     {
-        this.model = null;
         this.mesh = null;
     }
 
@@ -270,27 +269,22 @@ OV.ImporterPly = class extends OV.ImporterBase
 
         function GetMaterialFromColor (obj, color, colorToMaterial)
         {
-            function IntegerToHex (intVal)
-            {
-                let result = parseInt (intVal, 10).toString (16);
-                while (result.length < 2) {
-                    result = '0' + result;
-                }
-                return result;
-            }
-
             if (color === null) {
                 return null;
             }
 
-            let materialName = 'Color ' + IntegerToHex (color[0]) + IntegerToHex (color[1]) + IntegerToHex (color[2]) + IntegerToHex (color[3]);
+            let materialName = 'Color ' +
+                OV.IntegerToHexString (color[0]) +
+                OV.IntegerToHexString (color[1]) +
+                OV.IntegerToHexString (color[2]) +
+                OV.IntegerToHexString (color[3]);
             let materialIndex = colorToMaterial[materialName];
             if (materialIndex === undefined) {
                 let material = new OV.Material ();
                 material.name = materialName;
                 material.diffuse = new OV.Color (color[0], color[1], color[2]);
                 material.opacity = color[3] / 255.0;
-                material.transparent = OV.IsLower (material.opacity, 1.0);
+                OV.UpdateMaterialTransparency (material);
                 materialIndex = obj.model.AddMaterial (material);
                 colorToMaterial[materialName] = materialIndex;
             }

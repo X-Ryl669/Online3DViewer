@@ -6,7 +6,7 @@ OV.Website = class
         this.viewer = new OV.Viewer ();
         this.hashHandler = new OV.HashHandler ();
         this.toolbar = new OV.Toolbar (this.parameters.toolbarDiv);
-        this.menu = new OV.Menu (this.parameters.menuDiv);
+        this.navigator = new OV.Navigator (this.parameters.navigatorDiv);
         this.importSettings = new OV.ImportSettings ();
         this.modelLoader = new OV.ThreeModelLoader ();
         this.highlightMaterial = new THREE.MeshPhongMaterial ({
@@ -33,7 +33,7 @@ OV.Website = class
         this.InitToolbar ();
         this.InitDragAndDrop ();
         this.InitModelLoader ();
-        this.InitMenu ();
+        this.InitNavigator ();
 
         this.viewer.SetClickHandler (this.OnModelClicked.bind (this));
         this.Resize ();
@@ -52,19 +52,19 @@ OV.Website = class
         let windowHeight = $(window).outerHeight ();
         let headerHeight = parseInt (this.parameters.headerDiv.outerHeight (true), 10);
 
-        let menuWidth = 0;
+        let navigatorWidth = 0;
         let safetyMargin = 0;
         if (!OV.IsSmallWidth ()) {
-            menuWidth = parseInt (this.parameters.menuDiv.outerWidth (true), 10);
+            navigatorWidth = parseInt (this.parameters.navigatorDiv.outerWidth (true), 10);
             safetyMargin = 1;
         }
         
-        let contentWidth = windowWidth - menuWidth - safetyMargin;
+        let contentWidth = windowWidth - navigatorWidth - safetyMargin;
         let contentHeight = windowHeight - headerHeight - safetyMargin;
-        this.parameters.menuDiv.outerHeight (contentHeight, true);
+        this.parameters.navigatorDiv.outerHeight (contentHeight, true);
         this.parameters.introDiv.outerHeight (contentHeight, true);
 
-        this.menu.Resize ();
+        this.navigator.Resize ();
         this.viewer.Resize (contentWidth, contentHeight);
     }
 
@@ -87,7 +87,7 @@ OV.Website = class
         this.parameters.introDiv.hide ();
         this.ShowViewer (false);
         this.viewer.Clear ();
-        this.menu.Clear ();
+        this.navigator.Clear ();
     }
     
     OnModelFinished (importResult, threeMeshes)
@@ -96,7 +96,7 @@ OV.Website = class
         this.ShowViewer (true);
         this.viewer.AddMeshes (threeMeshes);
         this.viewer.SetUpVector (importResult.upVector, false);
-        this.menu.FillTree (importResult);
+        this.navigator.FillTree (importResult);
         this.FitModelToWindow (true);
     }
 
@@ -105,12 +105,12 @@ OV.Website = class
         if (button === 1) {
             let meshUserData = this.viewer.GetMeshUserDataUnderMouse (mouseCoordinates);
             if (meshUserData === null) {
-                this.menu.SetSelection (null);
+                this.navigator.SetSelection (null);
             } else {
                 if (isCtrlPressed) {
-                    this.menu.IsolateMesh (meshUserData.originalMeshIndex);
+                    this.navigator.IsolateMesh (meshUserData.originalMeshIndex);
                 } else {
-                    this.menu.SetSelection (new OV.Selection (OV.SelectionType.Mesh, meshUserData.originalMeshIndex));
+                    this.navigator.SetSelection (new OV.Selection (OV.SelectionType.Mesh, meshUserData.originalMeshIndex));
                 }
             }
         }
@@ -126,7 +126,7 @@ OV.Website = class
         let obj = this;
         let animation = !onLoad;
         let boundingSphere = this.viewer.GetBoundingSphere (function (meshUserData) {
-            return obj.menu.IsMeshVisible (meshUserData.originalMeshIndex);
+            return obj.navigator.IsMeshVisible (meshUserData.originalMeshIndex);
         });
         if (onLoad) {
             this.viewer.AdjustClippingPlanes (boundingSphere);
@@ -147,13 +147,13 @@ OV.Website = class
         let obj = this;
         this.UpdateMeasureTool (false);
         this.viewer.SetMeshesVisibility (function (meshUserData) {
-            return obj.menu.IsMeshVisible (meshUserData.originalMeshIndex);
+            return obj.navigator.IsMeshVisible (meshUserData.originalMeshIndex);
         });
     }
 
     UpdateMeshesSelection ()
     {
-        let selectedMeshIndex = this.menu.GetSelectedMeshIndex ();
+        let selectedMeshIndex = this.navigator.GetSelectedMeshIndex ();
         this.viewer.SetMeshesHighlight (this.highlightMaterial, function (meshUserData) {
             if (meshUserData.originalMeshIndex === selectedMeshIndex) {
                 return true;
@@ -332,7 +332,7 @@ OV.Website = class
                 });
             });
         }
-
+        
         this.parameters.fileInput.on ('change', function (ev) {
             if (ev.target.files.length > 0) {
                 obj.LoadModelFromFileList (ev.target.files);
@@ -381,7 +381,7 @@ OV.Website = class
         });
     }
 
-    InitMenu ()
+    InitNavigator ()
     {
         function GetMeshUserData (viewer, meshIndex)
         {
@@ -438,30 +438,46 @@ OV.Website = class
 
             viewer.EnumerateMeshesUserData (function (meshUserData) {
                 if (meshUserData.originalMaterials.indexOf (materialIndex) !== -1) {
-                    materialInfo.usedByMeshes.push (meshUserData.originalMeshIndex);
+                    const mesh = model.GetMesh (meshUserData.originalMeshIndex);
+                    materialInfo.usedByMeshes.push ({
+                        index : meshUserData.originalMeshIndex,
+                        name : mesh.GetName ()
+                    });
                 }
             });
             return materialInfo;
         }
 
+        function GetMaterialReferenceInfo (model, materialIndex)
+        {
+            const material = model.GetMaterial (materialIndex);
+            return {
+                index : materialIndex,
+                name : material.name,
+                diffuse : material.diffuse.Clone ()
+            };
+        }
+
         function GetMeshInfo (viewer, model, meshIndex)
         {
             let result = {
-                name : null,
-                vertexCount : null,
-                triangleCount : null,
+                element : null,
                 usedMaterials : null,
                 boundingBox : null
             };
             
             let mesh = model.GetMesh (meshIndex);
-            result.name = mesh.GetName ();
-            result.vertexCount = mesh.VertexCount ();
-            result.triangleCount = mesh.TriangleCount ();
+            result.element = mesh;
 
             let userData = GetMeshUserData (viewer, meshIndex);
-            result.usedMaterials = userData.originalMaterials;
-            result.usedMaterials.sort ();
+            result.usedMaterials = [];
+            for (let i = 0; i < userData.originalMaterials.length; i++) {
+                const materialIndex = userData.originalMaterials[i];
+                result.usedMaterials.push (GetMaterialReferenceInfo (model, materialIndex));                
+            }
+            result.usedMaterials.sort (function (a, b) {
+                return a.index - b.index;
+            });            
 
             let boundingBox = viewer.GetBoundingBox (function (meshUserData) {
                 return meshUserData.originalMeshIndex === meshIndex;
@@ -473,21 +489,23 @@ OV.Website = class
         function GetModelInfo (model, viewer)
         {
             let result = {
-                name : null,
-                vertexCount : model.VertexCount (),
-                triangleCount : model.TriangleCount (),
+                element : model,
                 usedMaterials : null,
                 boundingBox : null
             };
             let boundingBox = viewer.GetBoundingBox (function (meshUserData) {
                 return true;
             });
+            result.usedMaterials = [];
+            for (let materialIndex = 0; materialIndex < model.MaterialCount (); materialIndex++) {
+                result.usedMaterials.push (GetMaterialReferenceInfo (model, materialIndex));
+            }
             result.boundingBox = GetBoundingBoxInfo (boundingBox);
             return result;
         }
 
         let obj = this;
-        this.menu.Init ({
+        this.navigator.Init ({
             openFileBrowserDialog : function () {
                 obj.OpenFileBrowserDialog ();
             },

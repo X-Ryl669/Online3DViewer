@@ -1,5 +1,9 @@
 language: node_js
 
+os:
+  - osx
+  - linux
+
 node_js:
   - "15"
 
@@ -7,4 +11,5 @@ install:
   - npm install
 
 script:
+  - npm run build
   - npm run test

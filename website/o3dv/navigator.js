@@ -13,15 +13,15 @@ OV.Selection = class
     }
 };
 
-OV.Menu = class
+OV.Navigator = class
 {
     constructor (parentDiv)
     {
         this.parentDiv = parentDiv;
         this.callbacks = null;
-        this.titleDiv = $('<div>').addClass ('ov_menu_tree_title').addClass ('ov_thin_scrollbar').appendTo (parentDiv);
-        this.treeDiv = $('<div>').addClass ('ov_menu_tree_panel').addClass ('ov_thin_scrollbar').appendTo (parentDiv);
-        this.infoDiv = $('<div>').addClass ('ov_menu_info_panel').addClass ('ov_thin_scrollbar').appendTo (parentDiv);
+        this.titleDiv = $('<div>').addClass ('ov_navigator_tree_title').addClass ('ov_thin_scrollbar').appendTo (parentDiv);
+        this.treeDiv = $('<div>').addClass ('ov_navigator_tree_panel').addClass ('ov_thin_scrollbar').appendTo (parentDiv);
+        this.infoDiv = $('<div>').addClass ('ov_navigator_info_panel').addClass ('ov_thin_scrollbar').appendTo (parentDiv);
         this.treeView = new OV.TreeView (this.treeDiv);
         this.infoPanel = new OV.InfoPanel (this.infoDiv);
         this.modelData = new OV.ModelData ();
@@ -221,11 +221,7 @@ OV.Menu = class
         let obj = this;
         if (this.selection === null) {
             let modelInfo = this.callbacks.getModelInformation ();
-            modelInfo.usedMaterials = [];
-            for (let i = 0; i < this.modelData.MaterialCount (); i++) {
-                modelInfo.usedMaterials.push (i);
-            }
-            this.infoPanel.FillWithModelInfo (modelInfo, this.callbacks.getMaterialInformation, {
+            this.infoPanel.FillWithModelInfo (modelInfo, {
                 onMaterialSelect : function (materialIndex) {
                     obj.SetSelection (new OV.Selection (OV.SelectionType.Material, materialIndex));
                 }
@@ -233,7 +229,7 @@ OV.Menu = class
         } else {
             if (this.selection.type === OV.SelectionType.Material) {
                 let materialInfo = this.callbacks.getMaterialInformation (this.selection.index);
-                this.infoPanel.FillWithMaterialInfo (materialInfo, this.callbacks.getMeshInformation, {
+                this.infoPanel.FillWithMaterialInfo (materialInfo, {
                     onMeshHover : function (meshIndex) {
                         obj.SetTempSelectedMeshIndex (meshIndex);
                     },
@@ -243,7 +239,7 @@ OV.Menu = class
                 });
             } else if (this.selection.type === OV.SelectionType.Mesh) {
                 let meshInfo = this.callbacks.getMeshInformation (this.selection.index);
-                this.infoPanel.FillWithModelInfo (meshInfo, this.callbacks.getMaterialInformation, {
+                this.infoPanel.FillWithModelInfo (meshInfo, {
                     onMaterialSelect : function (materialIndex) {
                         obj.SetSelection (new OV.Selection (OV.SelectionType.Material, materialIndex));
                     }

@@ -2,13 +2,7 @@ OV.CalculateTriangleNormal = function (v0, v1, v2)
 {
     let v = OV.SubCoord3D (v1, v0);
     let w = OV.SubCoord3D (v2, v0);
-    
-    let normal = new OV.Coord3D (
-        v.y * w.z - v.z * w.y,
-        v.z * w.x - v.x * w.z,
-        v.x * w.y - v.y * w.x
-    );
-
+    let normal = OV.CrossVector3D (v, w);
     normal.Normalize ();
     return normal;
 };
@@ -29,7 +23,7 @@ OV.TransformMesh = function (mesh, transformation)
 
     if (mesh.NormalCount () > 0) {
         let trs = transformation.GetMatrix ().DecomposeTRS ();
-        let normalMatrix = new OV.Matrix ().ComposeTRS ([0.0, 0.0, 0.0], trs.rotation, [1.0, 1.0, 1.0]);
+        let normalMatrix = new OV.Matrix ().ComposeTRS (new OV.Coord3D (0.0, 0.0, 0.0), trs.rotation, new OV.Coord3D (1.0, 1.0, 1.0));
         let normalTransformation = new OV.Transformation (normalMatrix);
         for (let i = 0; i < mesh.NormalCount (); i++) {
             let normal = mesh.GetNormal (i);
@@ -49,24 +43,6 @@ OV.FlipMeshTrianglesOrientation = function (mesh)
         triangle.v1 = triangle.v2;
         triangle.v2 = tmp;
     }
-};
-
-OV.GetMeshBoundingBox = function (mesh)
-{
-    let min = new OV.Coord3D (Infinity, Infinity, Infinity);
-    let max = new OV.Coord3D (-Infinity, -Infinity, -Infinity);
-
-    for (let i = 0; i < mesh.VertexCount (); i++) {
-        let vertex = mesh.GetVertex (i);
-        min.x = Math.min (min.x, vertex.x);
-        min.y = Math.min (min.y, vertex.y);
-        min.z = Math.min (min.z, vertex.z);
-        max.x = Math.max (max.x, vertex.x);
-        max.y = Math.max (max.y, vertex.y);
-        max.z = Math.max (max.z, vertex.z);
-    }
-    
-    return [min, max];
 };
 
 OV.IsModelEmpty = function (model)
@@ -170,4 +146,110 @@ OV.CreateMergedModel = function (model)
 
     mergedModel.AddMesh (mergedMesh);
     return mergedModel;
+};
+
+OV.EnumerateModelVerticesAndTriangles = function (model, callbacks)
+{
+    for (let meshIndex = 0; meshIndex < model.MeshCount (); meshIndex++) {
+        let mesh = model.GetMesh (meshIndex);
+        for (let vertexIndex = 0; vertexIndex < mesh.VertexCount (); vertexIndex++) {
+            let vertex = mesh.GetVertex (vertexIndex);
+            callbacks.onVertex (vertex.x, vertex.y, vertex.z);
+        }
+    }
+    let vertexOffset = 0;
+    for (let meshIndex = 0; meshIndex < model.MeshCount (); meshIndex++) {
+        let mesh = model.GetMesh (meshIndex);
+        for (let triangleIndex = 0; triangleIndex < mesh.TriangleCount (); triangleIndex++) {
+            let triangle = mesh.GetTriangle (triangleIndex);
+            callbacks.onTriangle (triangle.v0 + vertexOffset, triangle.v1 + vertexOffset, triangle.v2 + vertexOffset);
+        }
+        vertexOffset += mesh.VertexCount ();
+    }
+};
+
+OV.EnumerateTrianglesWithNormals = function (element, onTriangle)
+{
+    element.EnumerateTriangles (function (v0, v1, v2) {
+        let normal = OV.CalculateTriangleNormal (v0, v1, v2);
+        onTriangle (v0, v1, v2, normal);
+    });
+};
+
+OV.GetBoundingBox = function (element)
+{
+    let calculator = new OV.BoundingBoxCalculator3D ();
+    element.EnumerateVertices (function (vertex) {
+        calculator.AddPoint (vertex);
+    });
+    return calculator.GetBox ();
+};
+
+OV.GetTopology = function (element)
+{
+    function GetVertexIndex (vertex, octree, topology)
+    {
+        let index = octree.FindPoint (vertex);
+        if (index === null) {
+            index = topology.AddVertex ();
+            octree.AddPoint (vertex, index);
+        }
+        return index;
+    }
+
+    let boundingBox = OV.GetBoundingBox (element);
+    let octree = new OV.Octree (boundingBox);
+    let topology = new OV.Topology ();
+    
+    element.EnumerateTriangles (function (v0, v1, v2) {
+        let v0Index = GetVertexIndex (v0, octree, topology);
+        let v1Index = GetVertexIndex (v1, octree, topology);
+        let v2Index = GetVertexIndex (v2, octree, topology);
+        topology.AddTriangle (v0Index, v1Index, v2Index);
+    });
+    return topology;
+};
+
+OV.IsSolid = function (element)
+{
+    function GetEdgeOrientationInTriangle (topology, triangleIndex, edgeIndex)
+    {
+        const triangle = topology.triangles[triangleIndex];
+        const triEdge1 = topology.triangleEdges[triangle.triEdge1];
+        const triEdge2 = topology.triangleEdges[triangle.triEdge2];
+        const triEdge3 = topology.triangleEdges[triangle.triEdge3];
+        if (triEdge1.edge === edgeIndex) {
+            return triEdge1.reversed;
+        }
+        if (triEdge2.edge === edgeIndex) {
+            return triEdge2.reversed;
+        }
+        if (triEdge3.edge === edgeIndex) {
+            return triEdge3.reversed;
+        }
+        return null;
+    }
+
+    const topology = OV.GetTopology (element);
+    for (let edgeIndex = 0; edgeIndex < topology.edges.length; edgeIndex++) {
+        const edge = topology.edges[edgeIndex];
+        let triCount = edge.triangles.length;
+        if (triCount === 0 || triCount % 2 !== 0) {
+            return false;
+        }
+        let edgesDirection = 0;
+        for (let triIndex = 0; triIndex < edge.triangles.length; triIndex++) {
+            const triangleIndex = edge.triangles[triIndex];
+            const edgeOrientation = GetEdgeOrientationInTriangle (topology, triangleIndex, edgeIndex);
+            if (edgeOrientation) {
+                edgesDirection += 1;
+            } else {
+                edgesDirection -= 1;
+            }
+        }
+        if (edgesDirection !== 0) {
+            return false;
+        }
+    }
+    return true;
 };

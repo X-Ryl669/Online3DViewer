@@ -39,10 +39,17 @@ OV.Importer3dm = class extends OV.ImporterBase
     {
 		if (this.rhino === null) {
 			let obj = this;
-			rhino3dm ().then (function (rhino) {
-				obj.rhino = rhino;
-				obj.ImportRhinoContent (fileContent);
-				onFinish ();
+			OV.LoadExternalLibrary ('rhino3dm.min.js', {
+				success : function () {
+					rhino3dm ().then (function (rhino) {
+						obj.rhino = rhino;
+						obj.ImportRhinoContent (fileContent);
+						onFinish ();
+					});
+				},
+				error : function () {
+					onFinish ();
+				}
 			});
 		} else {
 			this.ImportRhinoContent (fileContent);
@@ -239,7 +246,7 @@ OV.Importer3dm = class extends OV.ImporterBase
 				}
 			} else if (rhinoAttributes.materialSource === rhino.ObjectMaterialSource.MaterialFromLayer) {
 				let layerIndex = rhinoAttributes.layerIndex;
-				if (layerIndex > 0) {
+				if (layerIndex > -1) {
 					let layer = rhinoDoc.layers ().get (layerIndex);
 					let layerMaterialIndex = layer.renderMaterialIndex;
 					if (layerMaterialIndex > -1) {
@@ -280,7 +287,7 @@ OV.Importer3dm = class extends OV.ImporterBase
 				SetColor (material.diffuse, rhinoMaterial.diffuseColor);
 				SetColor (material.specular, rhinoMaterial.specularColor);
 				material.opacity = 1.0 - rhinoMaterial.transparency;
-                material.transparent = OV.IsLower (material.opacity, 1.0);
+				OV.UpdateMaterialTransparency (material);
 				// material.shininess = rhinoMaterial.shine / 255.0;
 				if (IsBlack (material.diffuse) && !IsWhite (rhinoMaterial.reflectionColor)) {
 					SetColor (material.diffuse, rhinoMaterial.reflectionColor);

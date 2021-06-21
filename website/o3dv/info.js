@@ -24,7 +24,7 @@ OV.InfoPanel = class
         this.detailsItem.SetOpenCloseHandler (openCloseHandler);        
     }
 
-    FillWithMaterialInfo (info, getMeshInfo, callbacks)
+    FillWithMaterialInfo (info, callbacks)
     {
         function AddRow (container, name, fillValue)
         {
@@ -76,7 +76,7 @@ OV.InfoPanel = class
 
         let meshItems = [];
         for (let i = 0; i < info.usedByMeshes.length; i++) {
-            let meshInfo = getMeshInfo (info.usedByMeshes[i]);
+            let meshInfo = info.usedByMeshes[i];
             meshItems.push ({
                 name : OV.GetMeshName (meshInfo.name)
             });
@@ -84,20 +84,21 @@ OV.InfoPanel = class
 
         let obj = this;
         let meshesText = 'Meshes (' + meshItems.length + ')';
-        let meshesButton = $('<div>').addClass ('ov_info_box_button').html (meshesText).appendTo (contentDiv);
-        meshesButton.click (function () {
+        this.CreateButton (contentDiv, meshesText, function (button) {
             if (meshItems.length === 0) {
                 return;
             }
-            obj.popup = OV.ShowListPopup (meshesButton, meshItems, {
+            obj.popup = OV.ShowListPopup (button, meshItems, {
                 onHoverStart : function (index) {
-                    callbacks.onMeshHover (info.usedByMeshes[index]);
+                    const meshItem = info.usedByMeshes[index];
+                    callbacks.onMeshHover (meshItem.index);
                 },
                 onHoverStop : function (index) {
                     callbacks.onMeshHover (null);
                 },
                 onClick : function (index) {
-                    callbacks.onMeshSelect (info.usedByMeshes[index]);
+                    const meshItem = info.usedByMeshes[index];
+                    callbacks.onMeshSelect (meshItem.index);
                 }
             });
         });
@@ -121,8 +122,8 @@ OV.InfoPanel = class
         let contentDiv = this.detailsItem.GetChildrenDiv ();
 
         let counterContainer = $('<div>').addClass ('ov_info_box').appendTo (contentDiv);
-        this.AddCounter (counterContainer, 'Vertices', info.vertexCount);
-        this.AddCounter (counterContainer, 'Triangles', info.triangleCount);
+        this.AddCounter (counterContainer, 'Vertices', info.element.VertexCount ());
+        this.AddCounter (counterContainer, 'Triangles', info.element.TriangleCount ());
 
         let sizeContainer = $('<div>').addClass ('ov_info_box').appendTo (contentDiv);
         $('<div>').addClass ('ov_info_box_title').html ('Size').appendTo (sizeContainer);
@@ -132,22 +133,38 @@ OV.InfoPanel = class
 
         let materialItems = [];
         for (let i = 0; i < info.usedMaterials.length; i++) {
-            let materialInfo = getMaterialInfo (info.usedMaterials[i]);
+            let usedMaterial = info.usedMaterials[i];
             materialItems.push ({
-                name : OV.GetMaterialName (materialInfo.name),
-                color : OV.ColorToHexString (materialInfo.diffuse)
+                name : OV.GetMaterialName (usedMaterial.name),
+                color : OV.ColorToHexString (usedMaterial.diffuse)
             });
         }
 
         let obj = this;
+        if (OV.FeatureSet.CalculateQuantities) {
+            this.CreateButton (contentDiv, 'Calculate Quantities', function (button) {
+                obj.popup = OV.ShowQuantitiesPopup (button, info.element);
+            });   
+        }
+
         let materialsText = 'Materials (' + materialItems.length + ')';
-        let materialsButton = $('<div>').addClass ('ov_info_box_button').html (materialsText).appendTo (contentDiv);
-        materialsButton.click (function () {
-            obj.popup = OV.ShowListPopup (materialsButton, materialItems, {
+        this.CreateButton (contentDiv, materialsText, function (button) {
+            obj.popup = OV.ShowListPopup (button, materialItems, {
                 onClick : function (index) {
-                    callbacks.onMaterialSelect (info.usedMaterials[index]);
+                    let usedMaterial = info.usedMaterials[index];
+                    callbacks.onMaterialSelect (usedMaterial.index);
                 }
             });
+        });        
+    }
+
+    CreateButton (parentDiv, buttonText, onClick)
+    {
+        let button = $('<div>').addClass ('ov_info_box_button').appendTo (parentDiv);
+        $('<div>').addClass ('ov_info_box_button_text').html (buttonText).appendTo (button);
+        $('<img>').addClass ('ov_info_box_button_icon').attr ('src', 'assets/images/tree/arrow_right.svg').appendTo (button);
+        button.click (function () {
+            onClick (button);
         });
     }
 

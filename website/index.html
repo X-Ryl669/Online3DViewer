@@ -4,14 +4,13 @@
 <head>
 	<meta http-equiv="content-type" content="text/html;charset=utf-8">
 	<meta name="viewport" content="width=device-width, user-scalable=no">
-	<link rel="icon" type="image/png" href="assets/images/3dviewer_net_favicon.png">
+	<link rel="icon" type="image/png" href="assets/images/3dviewer_net_favicon.ico">
 
 	<title>Online 3D Viewer</title>
 
 	<!-- libs start -->
 	<script type="text/javascript" src="../libs/jquery-3.5.1.min.js"></script>
-	<script type="text/javascript" src="../libs/three.min-126.js"></script>
-	<script type="text/javascript" src="../libs/rhino3dm.min.js"></script>
+	<script type="text/javascript" src="../libs/three.min-129.js"></script>
 	<!-- libs end -->
 	
 	<!-- meta start -->
@@ -23,6 +22,9 @@
 	<script type="text/javascript" src="../source/geometry/geometry.js"></script>
 	<script type="text/javascript" src="../source/geometry/coord2d.js"></script>
 	<script type="text/javascript" src="../source/geometry/coord3d.js"></script>
+	<script type="text/javascript" src="../source/geometry/quaternion.js"></script>
+	<script type="text/javascript" src="../source/geometry/box3d.js"></script>
+	<script type="text/javascript" src="../source/geometry/octree.js"></script>
 	<script type="text/javascript" src="../source/geometry/matrix.js"></script>
 	<script type="text/javascript" src="../source/geometry/transformation.js"></script>
 	<script type="text/javascript" src="../source/geometry/tween.js"></script>
@@ -31,12 +33,17 @@
 	<script type="text/javascript" src="../source/io/textwriter.js"></script>
 	<script type="text/javascript" src="../source/io/bufferutils.js"></script>
 	<script type="text/javascript" src="../source/io/fileutils.js"></script>
-	<script type="text/javascript" src="../source/model/modelentities.js"></script>
+	<script type="text/javascript" src="../source/model/material.js"></script>
+	<script type="text/javascript" src="../source/model/triangle.js"></script>
+	<script type="text/javascript" src="../source/model/element.js"></script>
 	<script type="text/javascript" src="../source/model/mesh.js"></script>
 	<script type="text/javascript" src="../source/model/meshbuffer.js"></script>
 	<script type="text/javascript" src="../source/model/model.js"></script>
+	<script type="text/javascript" src="../source/model/topology.js"></script>
 	<script type="text/javascript" src="../source/model/modelutils.js"></script>
 	<script type="text/javascript" src="../source/model/modelfinalization.js"></script>
+	<script type="text/javascript" src="../source/model/quantities.js"></script>
+	<script type="text/javascript" src="../source/model/generator.js"></script>
 	<script type="text/javascript" src="../source/import/importerutils.js"></script>
 	<script type="text/javascript" src="../source/import/importerbase.js"></script>
 	<script type="text/javascript" src="../source/import/importerobj.js"></script>
@@ -45,8 +52,8 @@
 	<script type="text/javascript" src="../source/import/importerply.js"></script>
 	<script type="text/javascript" src="../source/import/importer3ds.js"></script>
 	<script type="text/javascript" src="../source/import/importergltf.js"></script>
+	<script type="text/javascript" src="../source/import/importero3dv.js"></script>
 	<script type="text/javascript" src="../source/import/importer.js"></script>
-	<script type="text/javascript" src="../source/export/exporterutils.js"></script>
 	<script type="text/javascript" src="../source/export/exporterbase.js"></script>
 	<script type="text/javascript" src="../source/export/exporterobj.js"></script>
 	<script type="text/javascript" src="../source/export/exporterstl.js"></script>
@@ -54,10 +61,12 @@
 	<script type="text/javascript" src="../source/export/exporteroff.js"></script>
 	<script type="text/javascript" src="../source/export/exportergltf.js"></script>
 	<script type="text/javascript" src="../source/export/exporter.js"></script>
-	<script type="text/javascript" src="../source/external/rhino.importer.js"></script>
-	<script type="text/javascript" src="../source/external/rhino.exporter.js"></script>
-	<script type="text/javascript" src="../source/external/three.converter.js"></script>
-	<script type="text/javascript" src="../source/external/three.model.loader.js"></script>
+	<script type="text/javascript" src="../source/external/externallibs.js"></script>
+	<script type="text/javascript" src="../source/external/rhinoimporter.js"></script>
+	<script type="text/javascript" src="../source/external/rhinoexporter.js"></script>
+	<script type="text/javascript" src="../source/external/threeutils.js"></script>
+	<script type="text/javascript" src="../source/external/threeconverter.js"></script>
+	<script type="text/javascript" src="../source/external/threemodelloader.js"></script>
 	<script type="text/javascript" src="../source/parameters/parameterlist.js"></script>
 	<script type="text/javascript" src="../source/viewer/domutils.js"></script>
 	<script type="text/javascript" src="../source/viewer/navigation.js"></script>
@@ -67,15 +76,20 @@
 	<!-- importer end -->
 	
 	<!-- website start -->
+	<script type="text/javascript" src="o3dv/featureset.js"></script>
 	<script type="text/javascript" src="o3dv/utils.js"></script>
 	<script type="text/javascript" src="o3dv/toolbar.js"></script>
 	<script type="text/javascript" src="o3dv/treeview.js"></script>
 	<script type="text/javascript" src="o3dv/modal.js"></script>
 	<script type="text/javascript" src="o3dv/dialogs.js"></script>
+	<script type="text/javascript" src="o3dv/openurldialog.js"></script>
 	<script type="text/javascript" src="o3dv/exportdialog.js"></script>
+	<script type="text/javascript" src="o3dv/sharingdialog.js"></script>
+	<script type="text/javascript" src="o3dv/settingsdialog.js"></script>
+	<script type="text/javascript" src="o3dv/quantitiesdialog.js"></script>
 	<script type="text/javascript" src="o3dv/modeldata.js"></script>
 	<script type="text/javascript" src="o3dv/info.js"></script>
-	<script type="text/javascript" src="o3dv/menu.js"></script>
+	<script type="text/javascript" src="o3dv/navigator.js"></script>
 	<script type="text/javascript" src="o3dv/hashhandler.js"></script>
 	<link rel="stylesheet" type="text/css" href="o3dv/website.css">
 	<script type="text/javascript" src="o3dv/loader.js"></script>
@@ -83,14 +97,20 @@
 	<script type="text/javascript" src="o3dv/embed.js"></script>
 	<!-- website end -->
 
-	<script type='text/javascript'>
+	<!-- externals start -->
+	<script type="text/javascript">
+		OV.ExternalLibLocation = '../libs';
+	</script>
+	<!-- externals end -->
+
+	<script type="text/javascript">
 		$(window).on ('load', function () {
 			let website = new OV.Website ({
 				headerDiv : $('#header'),
 				toolbarDiv : $('#toolbar'),
 				mainDiv : $('#main'),
 				introDiv : $('#intro'),
-				menuDiv : $('#main_menu'),
+				navigatorDiv : $('#main_navigator'),
 				viewerDiv : $('#main_viewer'),
 				fileInput : $('#open_file')
 			});
@@ -120,7 +140,7 @@
 		<div class="toolbar" id="toolbar"></div>
 	</div>
 	<div class="main" id="main">
-		<div class="main_menu only_full_width" id="main_menu">
+		<div class="main_navigator only_full_width" id="main_navigator">
 		</div>
 		<div class="main_viewer" id="main_viewer">
 		</div>

@@ -1,8 +1,13 @@
-let cp = require ('child_process');
+let childProcess = require ('child_process');
+
 let pythonExecutable = 'python';
 if (process.platform !== 'win32') {
     pythonExecutable = 'python3';
 }
-cp.spawnSync (pythonExecutable, process.argv.slice (2), {
+
+let args = process.argv.slice (2);
+let result = childProcess.spawnSync (pythonExecutable, args, {
     stdio: "inherit"
 });
+
+process.exit (result.status);

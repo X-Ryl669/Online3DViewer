@@ -700,7 +700,11 @@ OV.ImporterGltf = class extends OV.ImporterBase
                 }
                 
                 if (hasTransformation) {
-                    matrix.ComposeTRS (translation, rotation, scale);
+                    matrix.ComposeTRS (
+                        OV.ArrayToCoord3D (translation),
+                        OV.ArrayToQuaternion (rotation),
+                        OV.ArrayToCoord3D (scale)
+                    );
                 }
             }
 
@@ -722,6 +726,8 @@ OV.ImporterGltf = class extends OV.ImporterBase
         this.model.AddMesh (mesh);
         if (gltfMesh.name !== undefined) {
             mesh.SetName (gltfMesh.name);
+        } else if (gltfNode.name !== undefined) {
+            mesh.SetName (gltfNode.name);
         }
 
         for (let i = 0; i < gltfMesh.primitives.length; i++) {

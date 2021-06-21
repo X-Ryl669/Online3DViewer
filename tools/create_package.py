@@ -72,6 +72,11 @@ def CreateDestinationDir (config, rootDir, websiteDir, version, testBuild):
 		replacer.ReplaceTokenFileLinks ('<!-- libs start -->', '<!-- libs end -->', libFiles, None)
 		replacer.ReplaceTokenFileLinks ('<!-- importer start -->', '<!-- importer end -->', importerFiles, version)
 		replacer.ReplaceTokenFileLinks ('<!-- website start -->', '<!-- website end -->', websiteFiles, version)
+		externalScriptContent = ''
+		externalScriptContent += '<script type="text/javascript">' + replacer.eolChar
+		externalScriptContent += '    OV.ExternalLibLocation = \'libs\';' + replacer.eolChar
+		externalScriptContent += '</script>'
+		replacer.ReplaceTokenContent ('<!-- externals start -->', '<!-- externals end -->', externalScriptContent)
 		metaFile = os.path.join (rootDir, 'tools', 'website_meta_data.txt')
 		if os.path.exists (metaFile):
 			metaContent = Tools.GetFileContent (metaFile)
@@ -86,14 +91,16 @@ def CreateDestinationDir (config, rootDir, websiteDir, version, testBuild):
 			replacer.ReplaceTokenContent ('<!-- script start -->', '<!-- script end -->', scriptContent)
 		replacer.WriteToFile (htmlFilePath)
 
-def CreatePackage (websiteDir, packageDir, version):
+def CreatePackage (rootDir, websiteDir, packageDir, version):
 	if not os.path.exists (packageDir):
 		os.makedirs (packageDir)
 
 	zipPath = os.path.join (packageDir, 'o3dv_' + version + '.zip')
 	zip = zipfile.ZipFile (zipPath, mode = 'w', compression = zipfile.ZIP_DEFLATED)
-	zip.write (os.path.join (websiteDir, 'libs', 'three.min-126.js'), 'three.min-126.js')
+	zip.write (os.path.join (websiteDir, 'libs', 'three.min-129.js'), 'three.min-129.js')
+	zip.write (os.path.join (websiteDir, 'libs', 'three.license.md'), 'three.license.md')
 	zip.write (os.path.join (websiteDir, 'o3dv', 'o3dv.min.js'), 'o3dv.min-' + version + '.js')
+	zip.write (os.path.join (rootDir, 'LICENSE.md'), 'o3dv.license.md')
 	zip.close ()
 	return True
 
@@ -148,7 +155,7 @@ def Main (argv):
 		return 1
 
 	PrintInfo ('Create package.')
-	packageResult = CreatePackage (websiteDir, packageDir, version)
+	packageResult = CreatePackage (rootDir, websiteDir, packageDir, version)
 	if not packageResult:
 		PrintError ('Create package failed.')
 		return 1

@@ -70,3 +70,11 @@ OV.ResizeImageToPowerOfTwoSides = function (image)
 	context.drawImage (image, 0, 0, width, height);
 	return context.getImageData (0, 0, width, height);
 };
+
+OV.UpdateMaterialTransparency = function (material)
+{
+	material.transparent = false;
+	if (OV.IsLower (material.opacity, 1.0)) {
+		material.transparent = true;
+	}
+};
