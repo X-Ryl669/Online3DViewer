@@ -4,9 +4,10 @@ OV.NavCubeParams =
     // showHome: boolean = false; TODO
     // highLight: boolean = false; TODO
     champer   : 0.15, // percentage
-    faceColor :   0xd6d7dc,
-    edgeColor :   0xb1c5d4,
-    vertexColor : 0x71879a,
+    faceColor   :   0xd6d7dc,
+    edgeColor   :   0xb1c5d4,
+    vertexColor :   0x71879a,
+    hoverColor  :   0xc9e5f8,
 };
 
 // That's the closest to an enum in ES6
@@ -20,12 +21,24 @@ Side = class
     static get Bottom() { return 32; }
 };
 
+OV.NavCubeInteraction = class 
+{
+    constructor()
+    {
+        this.activePlane = 0;
+        this.oldPosition = new THREE.Vector3();
+        this.newPosition = new THREE.Vector3();
+        this.moving      = false;
+    }
+}
+
 OV.NavCube = class
 {
-
     constructor(params, viewer, canvas) 
     {
         this.params = Object.assign(OV.NavCubeParams, params);
+        //
+        this.params.hoverColor = new THREE.Color(this.params.hoverColor);
         this.cubeMesh = new THREE.Mesh();
         this.canvas = canvas;
         this.canvas.id = 'navcube';
@@ -41,63 +54,134 @@ OV.NavCube = class
         
         this.viewer = viewer;
 
+        this.planes = [];
         this.createMainFacets();
         this.createEdgeFacets();
         this.createCornerFacets();
         this.createLabels();
 
-       // this.viewer.camera.add(this.cubeMesh);
-       this.scene.add(this.cubeMesh);
-       this.Render();
-       // this.Render();
+        this.scene.add(this.cubeMesh);
+        this.Render();
+
+        this.addEvents();
     }
 
-    visibleCoordAtZDepth (depth, camera)
+    addEvents()
     {
-        // compensate for cameras not positioned at z=0
-        const cameraOffset = camera.position.z;
-        if ( depth < cameraOffset ) depth -= cameraOffset;
-        else depth += cameraOffset;
-      
-        // vertical fov in radians
-        const vFOV = camera.fov * Math.PI / 180; 
-      
-        // Math.abs to ensure the result is always positive
-        let height = 2 * Math.tan( vFOV / 2 ) * Math.abs( depth );
-        return {width: height * camera.aspect, height: height};
-    };
+        this.interaction = new OV.NavCubeInteraction();
+
+	    this.renderer.domElement.onmousemove = function(evt) {
+
+            if (this.interaction.activePlane) {
+                this.interaction.activePlane.material.color = this.interaction.activePlane.material.initialColor;
+                this.interaction.activePlane.material.needsUpdate = true;
+                this.interaction.activePlane = null;
+            }
+
+            let clientCoord = OV.GetClientCoordinates(this.renderer.domElement, evt.clientX, evt.clientY);
+            let size = this.renderer.getSize(new THREE.Vector2());
+            let mouse = new THREE.Vector2(clientCoord.x / size.width * 2 - 1, -clientCoord.y / size.height * 2 + 1);
+            
+            let raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(mouse, this.camera);
+            let intersects = raycaster.intersectObjects(this.planes, true);
+
+            if (intersects.length > 0) 
+            {
+                this.interaction.activePlane = intersects[0].object;
+                if (this.interaction.activePlane.material.color != new THREE.Color(this.params.hoverColor)) 
+                    this.interaction.activePlane.material.initialColor = this.interaction.activePlane.material.color;
+                this.interaction.activePlane.material.color = new THREE.Color(this.params.hoverColor);
+                this.interaction.activePlane.material.needsUpdate = true;
+                this.interaction.activeFaceNormal = intersects[0].face.normal.clone();
+
+                this.Render ();
+            }
+        }.bind(this);
+
+	
+	
+        this.renderer.domElement.onclick = function(evt) {
+            this.renderer.domElement.onmousemove(evt);
+    
+            if (!this.interaction.activePlane || this.interaction.moving) {
+                return false;
+            }
+
+            let normal = this.interaction.activeFaceNormal;
+            this.onSideClicked(normal);
+    /*
+            this.interaction.oldPosition.copy(this.camera.position);
+    
+            let navigationCamera = this.viewer.navigation.GetCamera ();
+            let target = new THREE.Vector3(navigationCamera.center.x, navigationCamera.center.y, navigationCamera.center.z);
+            let distance = this.camera.position.clone().sub(target).length();
+            this.interaction.newPosition.copy(target);
+    
+            if (this.interaction.activePlane.position.x !== 0) {
+                this.interaction.newPosition.x += this.interaction.activePlane.position.x < 0 ? -distance : distance;
+            } else if (this.interaction.activePlane.position.y !== 0) {
+                this.interaction.newPosition.y += this.interaction.activePlane.position.y < 0 ? -distance : distance;
+            } else if (this.interaction.activePlane.position.z !== 0) {
+                this.interaction.newPosition.z += this.interaction.activePlane.position.z < 0 ? -distance : distance;
+            }
+    
+            //play = true;
+            //startTime = Date.now();
+            this.camera.position.copy(this.interaction.newPosition);
+            */
+        }.bind(this);
+    
+        this.renderer.domElement.ontouchmove = function(e) {
+            let rect = e.target.getBoundingClientRect();
+            let x = e.targetTouches[0].pageX - rect.left;
+            let y = e.targetTouches[0].pageY - rect.top;
+            this.renderer.domElement.onmousemove({
+                offsetX: x,
+                offsetY: y
+            });
+        }.bind(this);
+    
+        this.renderer.domElement.ontouchstart = function(e) {
+            let rect = e.target.getBoundingClientRect();
+            let x = e.targetTouches[0].pageX - rect.left;
+            let y = e.targetTouches[0].pageY - rect.top;
+            this.renderer.domElement.onclick({
+                offsetX: x,
+                offsetY: y
+            });
+        }.bind(this);
+    }
+
+    getMainCamera()
+    {
+        let camera = this.viewer.navigation.GetCamera ();
+        let center = new THREE.Vector3(camera.center.x, camera.center.y, camera.center.z);
+        let position = this.viewer.camera.position;
+        return { camera: camera, center: center, position: position };
+    }
+
+    onSideClicked(normal) 
+    {
+        let upVector = null;
+        // Avoid gimbal lock issue when going to top so that the up vector is right where we want it
+        if (this.interaction.activePlane.userData.sides & Side.Top) {
+            upVector = new OV.Coord3D(0, 1, 0);
+        }
+        else if (this.interaction.activePlane.userData.sides & Side.Bottom) {
+            upVector = new OV.Coord3D(0, -1, 0);
+        }
+        else upVector = new OV.Coord3D(0, 0, 1);
+        this.viewer.SetCameraViewDirection(new OV.Coord3D(-normal.x, -normal.y, -normal.z), true, upVector);
+    }
     
     initCamera ()
     {
         this.camera = new THREE.PerspectiveCamera (45.0, this.canvas.width / this.canvas.height, 0.1, 1000.0);
-/*
-        let canvasElem = this.renderer.domElement;
-        let camera = OV.GetDefaultCamera (OV.Direction.Z);
-
-        let obj = this;
-        this.navigation = new OV.Navigation (canvasElem, camera);
-        this.navigation.SetUpdateHandler (function () {
-            obj.Render ();
-        });
-
-        this.upVector = new OV.UpVector ();
-        */
-    }
-
-    initLights  ()
-    {
-        let ambientLight = new THREE.AmbientLight (0x888888);
-        this.scene.add (ambientLight);
-    
-        this.light = new THREE.DirectionalLight (0x888888);
-        this.scene.add (this.light);
     }
 
     ResizedRenderer (width, height)
     {
-        //let pos = this.visibleCoordAtZDepth(-10.5, this.viewer.camera);
-        //this.cubeMesh.position.set(pos.width / 2 - 2.0, pos.height / 2 - 2.0, -10);
-
         if (window.devicePixelRatio) {
             this.renderer.setPixelRatio (window.devicePixelRatio);
         }
@@ -109,9 +193,9 @@ OV.NavCube = class
 
     Render ()
     {
-        let navigationCamera = this.viewer.navigation.GetCamera ();
+        let cam = this.getMainCamera();
         this.camera.rotation.copy(this.viewer.camera.rotation);
-		let dir = this.viewer.camera.position.clone().sub(new THREE.Vector3 (navigationCamera.center.x, navigationCamera.center.y, navigationCamera.center.z)).normalize();
+		let dir = cam.position.clone().sub(cam.center).normalize();
 		this.camera.position.copy(dir.multiplyScalar(2.5));
         this.renderer.render(this.scene, this.camera);
     }
@@ -135,6 +219,7 @@ OV.NavCube = class
           let mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial());
           mesh.userData.sides = i;
           this.cubeMesh.add(mesh);
+          this.planes.push(mesh);
         });
     }
     
@@ -152,19 +237,19 @@ OV.NavCube = class
         let offset = Math.sqrt(2) / 2 - this.params.champer / 2;
         plane.translate(0, 0, offset);
     
-        // side edges
+        // Side edges
         geoms[Side.Front | Side.Right] = plane.clone().rotateX(piBy2).rotateZ(piBy4);
         geoms[Side.Right | Side.Back]  = geoms[Side.Front | Side.Right].clone().rotateZ(piBy2);
         geoms[Side.Back  | Side.Left]  = geoms[Side.Right | Side.Back].clone().rotateZ(piBy2);
         geoms[Side.Left  | Side.Front] = geoms[Side.Back  | Side.Left].clone().rotateZ(piBy2);
     
-        // Side.top edges
+        // Top edges
         geoms[Side.Top | Side.Right] = plane.clone().rotateY(piBy4);
         geoms[Side.Top | Side.Back]  = geoms[Side.Top | Side.Right].clone().rotateZ(piBy2);
         geoms[Side.Top | Side.Left]  = geoms[Side.Top | Side.Back].clone().rotateZ(piBy2);
         geoms[Side.Top | Side.Front] = geoms[Side.Top | Side.Left].clone().rotateZ(piBy2);
     
-        // Side.bottom edges
+        // Bottom edges
         geoms[Side.Bottom | Side.Right] = plane.clone().rotateY(piBy4 + piBy2);
         geoms[Side.Bottom | Side.Back]  = geoms[Side.Bottom | Side.Right].clone().rotateZ(piBy2);
         geoms[Side.Bottom | Side.Left]  = geoms[Side.Bottom | Side.Back].clone().rotateZ(piBy2);
@@ -176,6 +261,7 @@ OV.NavCube = class
           let mesh = new THREE.Mesh(geom, sideMat);
           mesh.userData.sides = i;
           this.cubeMesh.add(mesh);
+          this.planes.push(mesh.clone());
     
           // create wireframe
           let posAttr = geom.getAttribute('position');
@@ -241,15 +327,23 @@ OV.NavCube = class
     }
 
     createCornerFacets() {
-        this.cubeMesh.add(this.createCornerMesh(Side.Left,  Side.Front, Side.Top, new THREE.Vector3(-1, -1, 1)));
-        this.cubeMesh.add(this.createCornerMesh(Side.Front, Side.Right, Side.Top, new THREE.Vector3(1, -1, 1)));
-        this.cubeMesh.add(this.createCornerMesh(Side.Right, Side.Back,  Side.Top, new THREE.Vector3(1, 1, 1)));
-        this.cubeMesh.add(this.createCornerMesh(Side.Back,  Side.Left,  Side.Top, new THREE.Vector3(-1, 1, 1)));
+        let mesh = this.createCornerMesh(Side.Left,  Side.Front, Side.Top, new THREE.Vector3(-1, -1, 1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
+        mesh = this.createCornerMesh(Side.Front, Side.Right, Side.Top, new THREE.Vector3(1, -1, 1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
+        mesh = this.createCornerMesh(Side.Right, Side.Back,  Side.Top, new THREE.Vector3(1, 1, 1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
+        mesh = this.createCornerMesh(Side.Back,  Side.Left,  Side.Top, new THREE.Vector3(-1, 1, 1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
 
-        this.cubeMesh.add(this.createCornerMesh(Side.Front, Side.Left,  Side.Bottom, new THREE.Vector3(-1, -1, -1)));
-        this.cubeMesh.add(this.createCornerMesh(Side.Right, Side.Front, Side.Bottom, new THREE.Vector3(1, -1, -1)));
-        this.cubeMesh.add(this.createCornerMesh(Side.Back,  Side.Right, Side.Bottom, new THREE.Vector3(1, 1, -1)));
-        this.cubeMesh.add(this.createCornerMesh(Side.Left,  Side.Back,  Side.Bottom, new THREE.Vector3(-1, 1, -1)));
+        mesh = this.createCornerMesh(Side.Front, Side.Left,  Side.Bottom, new THREE.Vector3(-1, -1, -1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
+        mesh = this.createCornerMesh(Side.Right, Side.Front, Side.Bottom, new THREE.Vector3(1, -1, -1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
+        mesh = this.createCornerMesh(Side.Back,  Side.Right, Side.Bottom, new THREE.Vector3(1, 1, -1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
+        mesh = this.createCornerMesh(Side.Left,  Side.Back,  Side.Bottom, new THREE.Vector3(-1, 1, -1));
+        this.cubeMesh.add(mesh); this.planes.push(mesh);
     }
 
     createLabels() {

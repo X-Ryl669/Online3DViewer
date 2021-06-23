@@ -315,6 +315,18 @@ OV.Viewer = class
         this.Render ();
     }
 
+    SetCameraViewDirection (direction, animate, upVector)
+    {
+        let oldCamera = this.navigation.GetCamera ();
+        let length = OV.CoordDistance3D (oldCamera.center, oldCamera.eye);
+        let eye = OV.AddCoord3D (direction.Normalize ().MultiplyScalar (-length), oldCamera.center);
+        let up = upVector ? upVector : OV.CrossVector3D (eye, direction.Normalize ());
+        let newCamera = new OV.Camera(eye, oldCamera.center, up);
+        let animationSteps = animate ? this.settings.animationSteps : 0;
+        this.navigation.MoveCamera (newCamera, animationSteps);
+        this.Render ();
+    }
+
     SetUpVector (upDirection, animate)
     {
         let oldCamera = this.navigation.GetCamera ();
