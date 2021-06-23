@@ -39,6 +39,7 @@ OV.NavCubeInteraction = class
 			this.canvas.addEventListener ('touchstart', this.OnTouchStart.bind (this));
 			this.canvas.addEventListener ('touchmove', this.OnTouchMove.bind (this));
 			this.canvas.addEventListener ('touchend', this.OnTouchEnd.bind (this));
+            this.canvas.addEventListener ('mouseleave', this.OnCanvasMouseLeave.bind (this));
 		}
 		if (document.addEventListener) {
 			document.addEventListener ('mousemove', this.OnMouseMove.bind (this));
@@ -95,6 +96,12 @@ OV.NavCubeInteraction = class
 	{
 		this.mouse.Leave (this.canvas, evt);
 		this.clickDetector.Leave (evt);
+	}
+    
+    OnCanvasMouseLeave (evt)
+	{
+        this.navCube.ResetSelection ();
+        this.navCube.Render();
 	}
 
     OnTouchMove(evt) 
@@ -173,13 +180,18 @@ OV.NavCube = class
         this.interaction = new OV.NavCubeInteraction(this);
     }
 
-    Intersect(clientCoord) 
+    ResetSelection()
     {
         if (this.activePlane) {
             this.activePlane.material.color = this.activePlane.material.initialColor;
             this.activePlane.material.needsUpdate = true;
             this.activePlane = null;
         }
+    }
+
+    Intersect(clientCoord) 
+    {
+        this.ResetSelection ();
 
         let size = this.renderer.getSize(new THREE.Vector2());
         let mouse = new THREE.Vector2(clientCoord.x / size.width * 2 - 1, -clientCoord.y / size.height * 2 + 1);
@@ -228,26 +240,6 @@ OV.NavCube = class
 
         let normal = this.activeFaceNormal;
         this.onSideClicked(normal);
-    /*
-        this.interaction.oldPosition.copy(this.camera.position);
-
-        let navigationCamera = this.viewer.navigation.GetCamera ();
-        let target = new THREE.Vector3(navigationCamera.center.x, navigationCamera.center.y, navigationCamera.center.z);
-        let distance = this.camera.position.clone().sub(target).length();
-        this.interaction.newPosition.copy(target);
-
-        if (this.interaction.activePlane.position.x !== 0) {
-            this.interaction.newPosition.x += this.interaction.activePlane.position.x < 0 ? -distance : distance;
-        } else if (this.interaction.activePlane.position.y !== 0) {
-            this.interaction.newPosition.y += this.interaction.activePlane.position.y < 0 ? -distance : distance;
-        } else if (this.interaction.activePlane.position.z !== 0) {
-            this.interaction.newPosition.z += this.interaction.activePlane.position.z < 0 ? -distance : distance;
-        }
-
-        //play = true;
-        //startTime = Date.now();
-        this.camera.position.copy(this.interaction.newPosition);
-        */
     }
 
 
