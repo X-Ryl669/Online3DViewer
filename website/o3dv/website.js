@@ -21,7 +21,7 @@ OV.Website = class
     Load ()
     {
         let canvas = $('<canvas>').appendTo (this.parameters.viewerDiv);
-        this.parameters.viewerDiv.get (0).style.position = "relative";
+        this.parameters.viewerDiv.get (0).style.position = 'relative';
         let navCubeCanvas = $('<canvas>').appendTo (this.parameters.viewerDiv);
         this.viewer.Init (canvas.get (0), navCubeCanvas.get (0));
         this.viewer.UpdateEdgesSettings ({

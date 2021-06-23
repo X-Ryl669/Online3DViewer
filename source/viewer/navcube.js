@@ -1,28 +1,15 @@
 OV.NavCubeParams =  
 {
-    // tween: boolean = false; TODO
-    // showHome: boolean = false; TODO
-    // highLight: boolean = false; TODO
-    champer   : 0.15, // percentage
+    champer     :   0.15, // percentage
     faceColor   :   0xd6d7dc,
     edgeColor   :   0xb1c5d4,
     vertexColor :   0x71879a,
     hoverColor  :   0xc9e5f8,
 };
 
-// That's the closest to an enum in ES6
-Side = class 
-{
-    static get Front()  { return 1; }
-    static get Back()   { return 2; } 
-    static get Left()   { return 4; }
-    static get Right()  { return 8; }
-    static get Top()    { return 16; }
-    static get Bottom() { return 32; }
-};
-
 OV.NavCubeInteraction = class 
 {
+
     constructor(navCube)
     {
         this.navCube     = navCube;
@@ -54,7 +41,9 @@ OV.NavCubeInteraction = class
         let clientCoord = OV.GetClientCoordinates(this.canvas, evt.clientX, evt.clientY);
         // Out of our canvas, let's ignore it if we aren't dragging
         if (clientCoord.x < 0 || clientCoord.x > this.canvas.width || clientCoord.y < 0 || clientCoord.y > this.canvas.height) {
-            if (!this.mouse.IsButtonDown ()) return false;
+          if (!this.mouse.IsButtonDown ()) {
+            return false;
+          }
         }
         evt.preventDefault();
         this.mouse.Move (this.canvas, evt);
@@ -97,7 +86,7 @@ OV.NavCubeInteraction = class
 		this.mouse.Leave (this.canvas, evt);
 		this.clickDetector.Leave (evt);
 	}
-    
+
     OnCanvasMouseLeave (evt)
 	{
         this.navCube.ResetSelection ();
@@ -138,11 +127,18 @@ OV.NavCubeInteraction = class
             this.navCube.Click();
         }
     }
-
-}
+};
 
 OV.NavCube = class
 {
+    // That's the closest to an enum in ES6
+    static get Front()  { return 1; }
+    static get Back()   { return 2; } 
+    static get Left()   { return 4; }
+    static get Right()  { return 8; }
+    static get Top()    { return 16; }
+    static get Bottom() { return 32; }
+
     constructor(params, viewer, canvas) 
     {
         this.params = Object.assign(OV.NavCubeParams, params);
@@ -203,8 +199,9 @@ OV.NavCube = class
         if (intersects.length > 0) 
         {
             this.activePlane = intersects[0].object;
-            if (this.activePlane.material.color != new THREE.Color(this.params.hoverColor)) 
+            if (this.activePlane.material.color !== new THREE.Color(this.params.hoverColor)) {
                 this.activePlane.material.initialColor = this.activePlane.material.color;
+            }
             this.activePlane.material.color = new THREE.Color(this.params.hoverColor);
             this.activePlane.material.needsUpdate = true;
             this.activeFaceNormal = intersects[0].face.normal.clone();
@@ -255,13 +252,15 @@ OV.NavCube = class
     {
         let upVector = null;
         // Avoid gimbal lock issue when going to top so that the up vector is right where we want it
-        if (this.activePlane.userData.sides & Side.Top) {
+        if (this.activePlane.userData.sides & OV.NavCube.Top) {
             upVector = new OV.Coord3D(0, 1, 0);
         }
-        else if (this.activePlane.userData.sides & Side.Bottom) {
+        else if (this.activePlane.userData.sides & OV.NavCube.Bottom) {
             upVector = new OV.Coord3D(0, -1, 0);
         }
-        else upVector = new OV.Coord3D(0, 0, 1);
+        else {
+            upVector = new OV.Coord3D(0, 0, 1);
+        }
         this.viewer.SetCameraViewDirection(new OV.Coord3D(-normal.x, -normal.y, -normal.z), true, upVector);
     }
     
@@ -298,12 +297,12 @@ OV.NavCube = class
         let halfPi = Math.PI / 2;
         let geoms = [];
     
-        geoms[Side.Front]  = plane.clone().rotateX(halfPi);
-        geoms[Side.Back]   = plane.clone().rotateX(-halfPi).rotateY(Math.PI);
-        geoms[Side.Left]   = plane.clone().rotateY(-halfPi).rotateX(halfPi);
-        geoms[Side.Right]  = plane.clone().rotateY(halfPi).rotateX(halfPi);
-        geoms[Side.Top]    = plane.clone();
-        geoms[Side.Bottom] = plane.clone().rotateX(-Math.PI);
+        geoms[OV.NavCube.Front]  = plane.clone().rotateX(halfPi);
+        geoms[OV.NavCube.Back]   = plane.clone().rotateX(-halfPi).rotateY(Math.PI);
+        geoms[OV.NavCube.Left]   = plane.clone().rotateY(-halfPi).rotateX(halfPi);
+        geoms[OV.NavCube.Right]  = plane.clone().rotateY(halfPi).rotateX(halfPi);
+        geoms[OV.NavCube.Top]    = plane.clone();
+        geoms[OV.NavCube.Bottom] = plane.clone().rotateX(-Math.PI);
     
         geoms.forEach((geom, i) => {
           let mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial());
@@ -328,22 +327,22 @@ OV.NavCube = class
         plane.translate(0, 0, offset);
     
         // Side edges
-        geoms[Side.Front | Side.Right] = plane.clone().rotateX(piBy2).rotateZ(piBy4);
-        geoms[Side.Right | Side.Back]  = geoms[Side.Front | Side.Right].clone().rotateZ(piBy2);
-        geoms[Side.Back  | Side.Left]  = geoms[Side.Right | Side.Back].clone().rotateZ(piBy2);
-        geoms[Side.Left  | Side.Front] = geoms[Side.Back  | Side.Left].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Front | OV.NavCube.Right] = plane.clone().rotateX(piBy2).rotateZ(piBy4);
+        geoms[OV.NavCube.Right | OV.NavCube.Back]  = geoms[OV.NavCube.Front | OV.NavCube.Right].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Back  | OV.NavCube.Left]  = geoms[OV.NavCube.Right | OV.NavCube.Back].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Left  | OV.NavCube.Front] = geoms[OV.NavCube.Back  | OV.NavCube.Left].clone().rotateZ(piBy2);
     
         // Top edges
-        geoms[Side.Top | Side.Right] = plane.clone().rotateY(piBy4);
-        geoms[Side.Top | Side.Back]  = geoms[Side.Top | Side.Right].clone().rotateZ(piBy2);
-        geoms[Side.Top | Side.Left]  = geoms[Side.Top | Side.Back].clone().rotateZ(piBy2);
-        geoms[Side.Top | Side.Front] = geoms[Side.Top | Side.Left].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Top | OV.NavCube.Right] = plane.clone().rotateY(piBy4);
+        geoms[OV.NavCube.Top | OV.NavCube.Back]  = geoms[OV.NavCube.Top | OV.NavCube.Right].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Top | OV.NavCube.Left]  = geoms[OV.NavCube.Top | OV.NavCube.Back].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Top | OV.NavCube.Front] = geoms[OV.NavCube.Top | OV.NavCube.Left].clone().rotateZ(piBy2);
     
         // Bottom edges
-        geoms[Side.Bottom | Side.Right] = plane.clone().rotateY(piBy4 + piBy2);
-        geoms[Side.Bottom | Side.Back]  = geoms[Side.Bottom | Side.Right].clone().rotateZ(piBy2);
-        geoms[Side.Bottom | Side.Left]  = geoms[Side.Bottom | Side.Back].clone().rotateZ(piBy2);
-        geoms[Side.Bottom | Side.Front] = geoms[Side.Bottom | Side.Left].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Bottom | OV.NavCube.Right] = plane.clone().rotateY(piBy4 + piBy2);
+        geoms[OV.NavCube.Bottom | OV.NavCube.Back]  = geoms[OV.NavCube.Bottom | OV.NavCube.Right].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Bottom | OV.NavCube.Left]  = geoms[OV.NavCube.Bottom | OV.NavCube.Back].clone().rotateZ(piBy2);
+        geoms[OV.NavCube.Bottom | OV.NavCube.Front] = geoms[OV.NavCube.Bottom | OV.NavCube.Left].clone().rotateZ(piBy2);
     
         let localVertex = new THREE.Vector3();
         geoms.forEach((geom, i) => {
@@ -364,7 +363,7 @@ OV.NavCube = class
           points.push(localVertex.fromBufferAttribute(posAttr, 0).clone());
     
           const lineMat = new THREE.LineBasicMaterial({ color: 'black' }); // TODO make param
-          var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat);
+          let line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), lineMat);
           mesh.add(line); // the hierarchy is important for ray casting
         });
     }
@@ -390,7 +389,7 @@ OV.NavCube = class
 
     getMeshOfSide(side)
     {
-        return this.cubeMesh.children.find((m) => m.userData.sides == side);
+        return this.cubeMesh.children.find((m) => m.userData.sides === side);
     }
 
     getTriangleOfSides(a, b, c, corner)
@@ -417,27 +416,27 @@ OV.NavCube = class
     }
 
     createCornerFacets() {
-        let mesh = this.createCornerMesh(Side.Left,  Side.Front, Side.Top, new THREE.Vector3(-1, -1, 1));
+        let mesh = this.createCornerMesh(OV.NavCube.Left,  OV.NavCube.Front, OV.NavCube.Top, new THREE.Vector3(-1, -1, 1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
-        mesh = this.createCornerMesh(Side.Front, Side.Right, Side.Top, new THREE.Vector3(1, -1, 1));
+        mesh = this.createCornerMesh(OV.NavCube.Front, OV.NavCube.Right, OV.NavCube.Top, new THREE.Vector3(1, -1, 1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
-        mesh = this.createCornerMesh(Side.Right, Side.Back,  Side.Top, new THREE.Vector3(1, 1, 1));
+        mesh = this.createCornerMesh(OV.NavCube.Right, OV.NavCube.Back,  OV.NavCube.Top, new THREE.Vector3(1, 1, 1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
-        mesh = this.createCornerMesh(Side.Back,  Side.Left,  Side.Top, new THREE.Vector3(-1, 1, 1));
+        mesh = this.createCornerMesh(OV.NavCube.Back,  OV.NavCube.Left,  OV.NavCube.Top, new THREE.Vector3(-1, 1, 1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
 
-        mesh = this.createCornerMesh(Side.Front, Side.Left,  Side.Bottom, new THREE.Vector3(-1, -1, -1));
+        mesh = this.createCornerMesh(OV.NavCube.Front, OV.NavCube.Left,  OV.NavCube.Bottom, new THREE.Vector3(-1, -1, -1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
-        mesh = this.createCornerMesh(Side.Right, Side.Front, Side.Bottom, new THREE.Vector3(1, -1, -1));
+        mesh = this.createCornerMesh(OV.NavCube.Right, OV.NavCube.Front, OV.NavCube.Bottom, new THREE.Vector3(1, -1, -1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
-        mesh = this.createCornerMesh(Side.Back,  Side.Right, Side.Bottom, new THREE.Vector3(1, 1, -1));
+        mesh = this.createCornerMesh(OV.NavCube.Back,  OV.NavCube.Right, OV.NavCube.Bottom, new THREE.Vector3(1, 1, -1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
-        mesh = this.createCornerMesh(Side.Left,  Side.Back,  Side.Bottom, new THREE.Vector3(-1, 1, -1));
+        mesh = this.createCornerMesh(OV.NavCube.Left,  OV.NavCube.Back,  OV.NavCube.Bottom, new THREE.Vector3(-1, 1, -1));
         this.cubeMesh.add(mesh); this.planes.push(mesh);
     }
 
     createLabels() {
-        let sides = [ Side.Front, Side.Back, Side.Left, Side.Right, Side.Top, Side.Bottom, ];
+        let sides = [ OV.NavCube.Front, OV.NavCube.Back, OV.NavCube.Left, OV.NavCube.Right, OV.NavCube.Top, OV.NavCube.Bottom, ];
         let sidesName = ['Front', 'Back', 'Left', 'Right', 'Top', 'Bottom',  ];
         let canvasSize = 256; // textures need 2^N, N=7
         let fontSize = 72;
@@ -455,7 +454,7 @@ OV.NavCube = class
           fontSize = Math.round(fontSize * ratio * 0.9); // 90% for padding
         }
     
-        for (let i in sides) {
+        for (let i = 0; i < sides.length; i++) {
           let side = sides[i];
           let str = sidesName[i];
     
