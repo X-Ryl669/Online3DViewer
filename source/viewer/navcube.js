@@ -3,7 +3,7 @@ OV.NavCubeParams =
     // tween: boolean = false; TODO
     // showHome: boolean = false; TODO
     // highLight: boolean = false; TODO
-    champer : 0.15, // percentage
+    champer   : 0.15, // percentage
     faceColor :   0xd6d7dc,
     edgeColor :   0xb1c5d4,
     vertexColor : 0x71879a,
@@ -23,19 +23,99 @@ Side = class
 OV.NavCube = class
 {
 
-    constructor(params, viewer) 
+    constructor(params, viewer, canvas) 
     {
         this.params = Object.assign(OV.NavCubeParams, params);
         this.cubeMesh = new THREE.Mesh();
+        this.canvas = canvas;
+        this.canvas.id = 'navcube';
+        this.renderer = new THREE.WebGLRenderer ({ canvas : this.canvas, antialias : true, alpha: true });
+        if (window.devicePixelRatio) {
+            this.renderer.setPixelRatio (window.devicePixelRatio);
+        }
+        this.renderer.setSize (this.canvas.width, this.canvas.height);
+        
+        this.scene = new THREE.Scene ();
+        this.scene.background = null;
+        this.initCamera();
+        
         this.viewer = viewer;
+
         this.createMainFacets();
         this.createEdgeFacets();
         this.createCornerFacets();
         this.createLabels();
 
-        this.viewer.scene.add(this.cubeMesh);
+       // this.viewer.camera.add(this.cubeMesh);
+       this.scene.add(this.cubeMesh);
+       this.Render();
+       // this.Render();
     }
+
+    visibleCoordAtZDepth (depth, camera)
+    {
+        // compensate for cameras not positioned at z=0
+        const cameraOffset = camera.position.z;
+        if ( depth < cameraOffset ) depth -= cameraOffset;
+        else depth += cameraOffset;
+      
+        // vertical fov in radians
+        const vFOV = camera.fov * Math.PI / 180; 
+      
+        // Math.abs to ensure the result is always positive
+        let height = 2 * Math.tan( vFOV / 2 ) * Math.abs( depth );
+        return {width: height * camera.aspect, height: height};
+    };
     
+    initCamera ()
+    {
+        this.camera = new THREE.PerspectiveCamera (45.0, this.canvas.width / this.canvas.height, 0.1, 1000.0);
+/*
+        let canvasElem = this.renderer.domElement;
+        let camera = OV.GetDefaultCamera (OV.Direction.Z);
+
+        let obj = this;
+        this.navigation = new OV.Navigation (canvasElem, camera);
+        this.navigation.SetUpdateHandler (function () {
+            obj.Render ();
+        });
+
+        this.upVector = new OV.UpVector ();
+        */
+    }
+
+    initLights  ()
+    {
+        let ambientLight = new THREE.AmbientLight (0x888888);
+        this.scene.add (ambientLight);
+    
+        this.light = new THREE.DirectionalLight (0x888888);
+        this.scene.add (this.light);
+    }
+
+    ResizedRenderer (width, height)
+    {
+        //let pos = this.visibleCoordAtZDepth(-10.5, this.viewer.camera);
+        //this.cubeMesh.position.set(pos.width / 2 - 2.0, pos.height / 2 - 2.0, -10);
+
+        if (window.devicePixelRatio) {
+            this.renderer.setPixelRatio (window.devicePixelRatio);
+        }
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix ();
+        this.renderer.setSize (width, height);
+        this.Render ();
+    }
+
+    Render ()
+    {
+        let navigationCamera = this.viewer.navigation.GetCamera ();
+        this.camera.rotation.copy(this.viewer.camera.rotation);
+		let dir = this.viewer.camera.position.clone().sub(new THREE.Vector3 (navigationCamera.center.x, navigationCamera.center.y, navigationCamera.center.z)).normalize();
+		this.camera.position.copy(dir.multiplyScalar(2.5));
+        this.renderer.render(this.scene, this.camera);
+    }
+
     createMainFacets() 
     {
         // The projection of the 45° champer on the plane is champer / sqrt(2)

@@ -137,6 +137,14 @@ div.main_viewer canvas
 	display: block;
 }
 
+div.main_viewer #navcube 
+{
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	border: none;	
+}
+
 div.embed_viewer
 {
 

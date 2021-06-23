@@ -199,7 +199,7 @@ OV.Viewer = class
         this.geometry.edgesSettings = Object.assign ({}, settings);
     }
     
-    Init (canvas)
+    Init (canvas, navCubeCanvas)
     {
         this.canvas = canvas;
         this.canvas.id = 'viewer';
@@ -218,10 +218,11 @@ OV.Viewer = class
         
         this.scene = new THREE.Scene ();
         this.geometry = new OV.ViewerGeometry (this.scene);
-        this.navCube = new OV.NavCube ({}, this);
 
         this.InitCamera ();
         this.InitLights ();
+        // Has to be after the camera is set up since it's adding to the camera
+        this.navCube = new OV.NavCube ({}, this, navCubeCanvas);
 
         this.Render ();
     }
@@ -255,7 +256,8 @@ OV.Viewer = class
         }
         this.camera.aspect = width / height;
         this.camera.updateProjectionMatrix ();
-        this.renderer.setSize (width, height);    
+        this.renderer.setSize (width, height);
+        this.navCube.ResizedRenderer(height / 4, height / 4); 
         this.Render ();
     }
 
@@ -340,6 +342,7 @@ OV.Viewer = class
         let lightDir = OV.SubCoord3D (navigationCamera.eye, navigationCamera.center);
         this.light.position.set (lightDir.x, lightDir.y, lightDir.z);    
         this.renderer.render (this.scene, this.camera);
+        this.navCube.Render ();
     }
 
     ToggleEdges (isVisible)
