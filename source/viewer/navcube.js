@@ -23,13 +23,115 @@ Side = class
 
 OV.NavCubeInteraction = class 
 {
-    constructor()
+    constructor(navCube)
     {
+        this.navCube     = navCube;
         this.activePlane = 0;
-        this.oldPosition = new THREE.Vector3();
-        this.newPosition = new THREE.Vector3();
-        this.moving      = false;
+        this.oldPosition = new THREE.Vector3 ();
+        this.newPosition = new THREE.Vector3 ();
+        this.mouse          = new OV.MouseInteraction ();
+        this.clickDetector  = new OV.ClickDetector ();
+        this.touch          = new OV.TouchInteraction ();
+        this.canvas         = this.navCube.renderer.domElement;
+
+        if (this.canvas.addEventListener) {
+			this.canvas.addEventListener ('mousedown', this.OnMouseDown.bind (this));
+			this.canvas.addEventListener ('touchstart', this.OnTouchStart.bind (this));
+			this.canvas.addEventListener ('touchmove', this.OnTouchMove.bind (this));
+			this.canvas.addEventListener ('touchend', this.OnTouchEnd.bind (this));
+		}
+		if (document.addEventListener) {
+			document.addEventListener ('mousemove', this.OnMouseMove.bind (this));
+			document.addEventListener ('mouseup', this.OnMouseUp.bind (this));
+			document.addEventListener ('mouseleave', this.OnMouseLeave.bind (this));
+		}		
     }
+
+    OnMouseMove (evt) 
+    {
+
+        let clientCoord = OV.GetClientCoordinates(this.canvas, evt.clientX, evt.clientY);
+        // Out of our canvas, let's ignore it if we aren't dragging
+        if (clientCoord.x < 0 || clientCoord.x > this.canvas.width || clientCoord.y < 0 || clientCoord.y > this.canvas.height) {
+            if (!this.mouse.IsButtonDown ()) return false;
+        }
+        evt.preventDefault();
+        this.mouse.Move (this.canvas, evt);
+        this.clickDetector.Move();
+
+        // Dragging ?
+        if (this.mouse.IsButtonDown ()) {
+            let moveDiff = this.mouse.GetMoveDiff ();
+            let mouseButton = this.mouse.GetButton ();
+            if (mouseButton === 1) {
+                let orbitRatio = 0.5;
+                this.navCube.Orbit (moveDiff.x * orbitRatio, moveDiff.y * orbitRatio);
+            }
+            return false;
+        }
+
+        this.navCube.Intersect(clientCoord);
+    }
+
+    OnMouseDown(evt) 
+    {
+        evt.preventDefault();
+        this.mouse.Down (this.canvas, evt);
+        this.clickDetector.Down(evt);
+    }
+
+    OnMouseUp(evt) 
+    {
+        this.mouse.Up (this.canvas, evt);
+        this.clickDetector.Up(evt);
+        if (this.clickDetector.IsClick()) {
+            let clientCoord = OV.GetClientCoordinates(this.canvas, evt.clientX, evt.clientY);
+            this.navCube.Intersect(clientCoord);
+            this.navCube.Click();
+        }
+    }
+
+    OnMouseLeave (evt)
+	{
+		this.mouse.Leave (this.canvas, evt);
+		this.clickDetector.Leave (evt);
+	}
+
+    OnTouchMove(evt) 
+    {
+        evt.preventDefault();
+        this.touch.Move (this.canvas, evt);
+        if (!this.touch.IsFingerDown ()) {
+            return;
+        }
+
+        let moveDiff = this.touch.GetMoveDiff ();
+        let fingerCount = this.touch.GetFingerCount ();
+        if (fingerCount === 1) {
+            let orbitRatio = 0.5;
+            this.navCube.Orbit (moveDiff.x * orbitRatio, moveDiff.y * orbitRatio);
+        }
+    }
+
+    OnTouchStart(evt) 
+    {
+        evt.preventDefault();
+        this.clickDetector.Down(this.canvas, evt);
+        this.touch.Start(this.canvas, evt);
+    }
+
+    OnTouchEnd(evt) 
+    {
+        evt.preventDefault();
+        this.touch.End(this.canvas, evt);
+        this.clickDetector.Up(evt);
+        if (this.clickDetector.IsClick()) {
+            let clientCoord = OV.GetClientCoordinates(this.canvas, evt.changedTouches[0].clientX, evt.changedTouches[0].clientY);
+            this.navCube.Intersect(clientCoord);
+            this.navCube.Click();
+        }
+    }
+
 }
 
 OV.NavCube = class
@@ -68,90 +170,86 @@ OV.NavCube = class
 
     addEvents()
     {
-        this.interaction = new OV.NavCubeInteraction();
-
-	    this.renderer.domElement.onmousemove = function(evt) {
-
-            if (this.interaction.activePlane) {
-                this.interaction.activePlane.material.color = this.interaction.activePlane.material.initialColor;
-                this.interaction.activePlane.material.needsUpdate = true;
-                this.interaction.activePlane = null;
-            }
-
-            let clientCoord = OV.GetClientCoordinates(this.renderer.domElement, evt.clientX, evt.clientY);
-            let size = this.renderer.getSize(new THREE.Vector2());
-            let mouse = new THREE.Vector2(clientCoord.x / size.width * 2 - 1, -clientCoord.y / size.height * 2 + 1);
-            
-            let raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, this.camera);
-            let intersects = raycaster.intersectObjects(this.planes, true);
-
-            if (intersects.length > 0) 
-            {
-                this.interaction.activePlane = intersects[0].object;
-                if (this.interaction.activePlane.material.color != new THREE.Color(this.params.hoverColor)) 
-                    this.interaction.activePlane.material.initialColor = this.interaction.activePlane.material.color;
-                this.interaction.activePlane.material.color = new THREE.Color(this.params.hoverColor);
-                this.interaction.activePlane.material.needsUpdate = true;
-                this.interaction.activeFaceNormal = intersects[0].face.normal.clone();
-
-                this.Render ();
-            }
-        }.bind(this);
-
-	
-	
-        this.renderer.domElement.onclick = function(evt) {
-            this.renderer.domElement.onmousemove(evt);
-    
-            if (!this.interaction.activePlane || this.interaction.moving) {
-                return false;
-            }
-
-            let normal = this.interaction.activeFaceNormal;
-            this.onSideClicked(normal);
-    /*
-            this.interaction.oldPosition.copy(this.camera.position);
-    
-            let navigationCamera = this.viewer.navigation.GetCamera ();
-            let target = new THREE.Vector3(navigationCamera.center.x, navigationCamera.center.y, navigationCamera.center.z);
-            let distance = this.camera.position.clone().sub(target).length();
-            this.interaction.newPosition.copy(target);
-    
-            if (this.interaction.activePlane.position.x !== 0) {
-                this.interaction.newPosition.x += this.interaction.activePlane.position.x < 0 ? -distance : distance;
-            } else if (this.interaction.activePlane.position.y !== 0) {
-                this.interaction.newPosition.y += this.interaction.activePlane.position.y < 0 ? -distance : distance;
-            } else if (this.interaction.activePlane.position.z !== 0) {
-                this.interaction.newPosition.z += this.interaction.activePlane.position.z < 0 ? -distance : distance;
-            }
-    
-            //play = true;
-            //startTime = Date.now();
-            this.camera.position.copy(this.interaction.newPosition);
-            */
-        }.bind(this);
-    
-        this.renderer.domElement.ontouchmove = function(e) {
-            let rect = e.target.getBoundingClientRect();
-            let x = e.targetTouches[0].pageX - rect.left;
-            let y = e.targetTouches[0].pageY - rect.top;
-            this.renderer.domElement.onmousemove({
-                offsetX: x,
-                offsetY: y
-            });
-        }.bind(this);
-    
-        this.renderer.domElement.ontouchstart = function(e) {
-            let rect = e.target.getBoundingClientRect();
-            let x = e.targetTouches[0].pageX - rect.left;
-            let y = e.targetTouches[0].pageY - rect.top;
-            this.renderer.domElement.onclick({
-                offsetX: x,
-                offsetY: y
-            });
-        }.bind(this);
+        this.interaction = new OV.NavCubeInteraction(this);
     }
+
+    Intersect(clientCoord) 
+    {
+        if (this.activePlane) {
+            this.activePlane.material.color = this.activePlane.material.initialColor;
+            this.activePlane.material.needsUpdate = true;
+            this.activePlane = null;
+        }
+
+        let size = this.renderer.getSize(new THREE.Vector2());
+        let mouse = new THREE.Vector2(clientCoord.x / size.width * 2 - 1, -clientCoord.y / size.height * 2 + 1);
+        
+        let raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, this.camera);
+        let intersects = raycaster.intersectObjects(this.planes, true);
+
+        if (intersects.length > 0) 
+        {
+            this.activePlane = intersects[0].object;
+            if (this.activePlane.material.color != new THREE.Color(this.params.hoverColor)) 
+                this.activePlane.material.initialColor = this.activePlane.material.color;
+            this.activePlane.material.color = new THREE.Color(this.params.hoverColor);
+            this.activePlane.material.needsUpdate = true;
+            this.activeFaceNormal = intersects[0].face.normal.clone();
+
+            this.Render ();
+        }
+    }
+
+	Orbit (angleX, angleY)
+	{
+		let radAngleX = angleX * OV.DegRad;
+		let radAngleY = angleY * OV.DegRad;
+		
+        let cam = this.getMainCamera();
+		let viewDirection = OV.SubCoord3D (cam.camera.center, cam.camera.eye).Normalize ();
+		let horizontalDirection = OV.CrossVector3D (viewDirection, cam.camera.up).Normalize ();
+		
+        let originalAngle = OV.VectorAngle3D (viewDirection, cam.camera.up);
+        let newAngle = originalAngle + radAngleY;
+        if (OV.IsGreater (newAngle, 0.0) && OV.IsLower (newAngle, Math.PI)) {
+            cam.camera.eye.Rotate (horizontalDirection, -radAngleY, cam.camera.center);
+        }
+        cam.camera.eye.Rotate (cam.camera.up, -radAngleX, cam.camera.center);
+        this.viewer.Render ();
+	}
+
+    Click() 
+    {
+        // Select the active plane
+        if (!this.activePlane || !this.interaction.clickDetector.IsClick()) {
+            return false;
+        }
+
+        let normal = this.activeFaceNormal;
+        this.onSideClicked(normal);
+    /*
+        this.interaction.oldPosition.copy(this.camera.position);
+
+        let navigationCamera = this.viewer.navigation.GetCamera ();
+        let target = new THREE.Vector3(navigationCamera.center.x, navigationCamera.center.y, navigationCamera.center.z);
+        let distance = this.camera.position.clone().sub(target).length();
+        this.interaction.newPosition.copy(target);
+
+        if (this.interaction.activePlane.position.x !== 0) {
+            this.interaction.newPosition.x += this.interaction.activePlane.position.x < 0 ? -distance : distance;
+        } else if (this.interaction.activePlane.position.y !== 0) {
+            this.interaction.newPosition.y += this.interaction.activePlane.position.y < 0 ? -distance : distance;
+        } else if (this.interaction.activePlane.position.z !== 0) {
+            this.interaction.newPosition.z += this.interaction.activePlane.position.z < 0 ? -distance : distance;
+        }
+
+        //play = true;
+        //startTime = Date.now();
+        this.camera.position.copy(this.interaction.newPosition);
+        */
+    }
+
 
     getMainCamera()
     {
@@ -165,10 +263,10 @@ OV.NavCube = class
     {
         let upVector = null;
         // Avoid gimbal lock issue when going to top so that the up vector is right where we want it
-        if (this.interaction.activePlane.userData.sides & Side.Top) {
+        if (this.activePlane.userData.sides & Side.Top) {
             upVector = new OV.Coord3D(0, 1, 0);
         }
-        else if (this.interaction.activePlane.userData.sides & Side.Bottom) {
+        else if (this.activePlane.userData.sides & Side.Bottom) {
             upVector = new OV.Coord3D(0, -1, 0);
         }
         else upVector = new OV.Coord3D(0, 0, 1);

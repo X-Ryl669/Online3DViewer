@@ -431,7 +431,7 @@ OV.Navigation = class
 	{
 		ev.preventDefault ();
 		if (this.onMove) {
-			this.clickDetector.Down (ev);
+			this.clickDetector.Down (this.canvas, ev);
 		}
 		this.touch.Start (this.canvas, ev);
 	}
