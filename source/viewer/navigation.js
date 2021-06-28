@@ -469,10 +469,10 @@ OV.Navigation = class
 		this.touch.End (this.canvas, ev);
 
 		if (this.onMove) {
-			this.clickDetector.Up (ev);
 			if (this.clickDetector.IsClick ()) {
 				this.Click (1, false, ev.changedTouches[0].clientX, ev.changedTouches[0].clientY);
 			}
+			this.clickDetector.Up (ev);
 		}
 	}
 

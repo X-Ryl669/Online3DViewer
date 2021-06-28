@@ -120,12 +120,12 @@ OV.NavCubeInteraction = class
     {
         evt.preventDefault();
         this.touch.End(this.canvas, evt);
-        this.clickDetector.Up(evt);
         if (this.clickDetector.IsClick()) {
             let clientCoord = OV.GetClientCoordinates(this.canvas, evt.changedTouches[0].clientX, evt.changedTouches[0].clientY);
             this.navCube.Intersect(clientCoord);
             this.navCube.Click();
         }
+        this.clickDetector.Up(evt);
     }
 };
 

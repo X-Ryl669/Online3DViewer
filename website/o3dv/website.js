@@ -16,6 +16,8 @@ OV.Website = class
         this.model = null;
         this.dialog = null;
         this.faceSelector = null;
+        this.cutPlane = null;
+        this.slider = null;
     }
 
     Load ()
@@ -224,6 +226,17 @@ OV.Website = class
         }
     }
 
+    EnableCut (isEnabled, button)
+    {
+        if (isEnabled && this.cutPlane === null) {
+            this.cutPlane = new OV.CutPlane (this.viewer, this.toolbar.mainDiv);
+        } else if (!isEnabled && this.cutPlane !== null) {
+            this.cutPlane.Dispose (); 
+            this.cutPlane = null;
+        }
+    }
+
+
     InitToolbar ()
     {
         function AddButton (toolbar, imageName, imageTitle, onlyFullWidth, onClick)
@@ -313,7 +326,9 @@ OV.Website = class
         AddRadioButton (this.toolbar, ['measure'], ['Measure model'], 1, false, function (buttonIndex, button) {
             obj.UpdateMeasureTool(button.selected, button);
         });
-
+        AddRadioButton (this.toolbar, ['cut'], ['Cut model'], 1, false, function (buttonIndex, button) {
+            obj.EnableCut(button.selected);
+        });
 
         if (OV.FeatureSet.SetDefaultColor || OV.FeatureSet.SetShowEdge) {
             AddSeparator (this.toolbar, true);

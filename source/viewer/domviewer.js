@@ -4,9 +4,11 @@ OV.Init3DViewerElements = function (loadedCB)
     {
         let canvas = document.createElement ('canvas');
         element.appendChild (canvas);
+        let navCanvas = document.createElement ('canvas');
+        element.appendChild (navCanvas);
 
         let viewer = new OV.Viewer ();
-        viewer.Init (canvas);
+        viewer.Init (canvas, navCanvas);
 
         let width = element.clientWidth;
         let height = element.clientHeight;
@@ -46,7 +48,7 @@ OV.Init3DViewerElements = function (loadedCB)
                     viewer.SetUpVector (importResult.upVector, false);
                 }
                 viewer.FitToWindow (boundingSphere, false); 
-                loadedCB (viewer);                               
+                loadedCB (viewer, importResult);                               
             },
             onTextureLoaded : function () {
                 viewer.Render ();
