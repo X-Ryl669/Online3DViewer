@@ -34,7 +34,8 @@ OV.CutPlane = class
         this.stencilGroup = new THREE.Group();
         this.stencilGroup.add(this.CreatePlaneStencilGroup( this.modelGeometry, this.cutPlane, 1 ));
 
-        let texture = new THREE.TextureLoader().load('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAWUlEQVQ4jaWTOw4AMAhCuf+l6dCkX21FTZyUNygAANdWC0XxBCTFHVAQU1afN5MA1sHDAO9bIcDr1V/AzydPQMRkLiDqUHOi2PuaqtnYNjLBGlvZVKIiJskGbQ087tuFaxEAAAAASUVORK5CYIIA');
+        let texture = new THREE.TextureLoader().load('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAWUlEQVQ4jaWTOw4AMAhCuf+l6dCkX21FTZyUNygAANdWC0XxBCTFHVAQU1afN5MA1sHDAO9bIcDr1V/AzydPQMRkLiDqUHOi2PuaqtnYNjLBGlvZVKIiJskGbQ087tuFaxEAAAAASUVORK5CYIIA', 
+                                                     function(e){ this.viewer.Render() }.bind(this));
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.anisotropy = this.viewer.renderer.capabilities.getMaxAnisotropy();
         texture.repeat.set(25,25);
