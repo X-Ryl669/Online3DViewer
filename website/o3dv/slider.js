@@ -15,7 +15,11 @@ OV.Slider = class
         this.buttonThumb = $('<input type="range" min="'+ this.minRange + '" max="'+ this.maxRange + '">').addClass ('ov_toolbar_slider').appendTo (this.buttonDiv);
         if (this.onChange !== null) {
             let self = this;
-            this.buttonThumb.on('input', function(e) { if (self.onChange !== null) self.onChange(Number.parseFloat(e.target.value)); } );
+            this.buttonThumb.on('input', function(e) { 
+              if (self.onChange !== null) {
+                self.onChange(Number.parseFloat(e.target.value));
+              }
+            });
         }
         this.Update ();
     }

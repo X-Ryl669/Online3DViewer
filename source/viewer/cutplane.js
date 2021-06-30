@@ -1,14 +1,16 @@
 
 OV.CutPlane = class
 {
-    constructor (viewer, sliderParentDiv)
+    constructor (viewer, sliderParentDiv, Slider = OV.Slider)
     {
         this.viewer = viewer;
         let bsphere = viewer.GetBoundingSphere(function(){return true;});
-        if (bsphere === null) return;
+        if (bsphere === null) { 
+          return; 
+        }
 
         // Used for showing the cut plane
-        let planeGeometry = new THREE.PlaneGeometry (bsphere.radius * 2.4, bsphere.radius * 2.4);
+        let planeGeometry = new THREE.PlaneGeometry (bsphere.radius * 2.2, bsphere.radius * 2.2);
 
         // Need to figure out the cutting limits, position and direction
         let cutPlanePos = bsphere.center.clone();
@@ -52,33 +54,54 @@ OV.CutPlane = class
             stencilZFail: THREE.ReplaceStencilOp,
             stencilZPass: THREE.ReplaceStencilOp,
         });
-        this.planeObject = new THREE.Mesh(planeGeometry, planeMat);
+        this.planeObject = new THREE.Mesh(new THREE.PlaneGeometry (bsphere.radius * 4, bsphere.radius * 4), planeMat);
         this.planeObject.onAfterRender = function (renderer) { renderer.clearStencil(); };
         this.planeObject.renderOrder = 1.1;
         this.poGroup.add(this.planeObject);
         this.viewer.scene.add(this.stencilGroup);
         this.viewer.scene.add(this.poGroup);
         this.viewer.renderer.localClippingEnabled = true;
-        // Hide the initial model
-        this.viewer.geometry.modelMeshes[0].visible = false;
-        // And create the clipped version of it
-        let modelMat = new THREE.MeshStandardMaterial( { color: 0xFFC107, metalness: 0.1, roughness: 0.75, 
-            clippingPlanes: [ this.cutPlane ],
-        });
-        this.modelMesh = new THREE.Mesh(this.modelGeometry, modelMat);
-        this.modelMesh.position.copy(this.viewer.geometry.modelMeshes[0].position);
-        this.modelMesh.renderOrder = 6;
-        this.viewer.scene.add(this.modelMesh);
-
+        this.ShadowMeshes();
         this.mesh.visible = true;
 		this.viewer.scene.add (this.mesh);
 
         this.FixStencilPlaneOrientation();
 
         this.viewer.Render();
-        this.slider = new OV.Slider(0, 1000, this.CutPlaneAxisUpdated.bind(this));
+        this.slider = new Slider(0, 1000, this.CutPlaneAxisUpdated.bind(this));
         this.slider.CreateDomElement (sliderParentDiv);
     }
+
+    ShadowMeshes ()
+    {
+        let modelMat = new THREE.MeshStandardMaterial( { color: 0xFFC107, metalness: 0.1, roughness: 0.75, 
+            clippingPlanes: [ this.cutPlane ],
+        });
+        this.modelMeshes = [];
+        this.edgesMeshes = [];
+        for (let i = 0; i < this.viewer.geometry.modelMeshes.length; i++) {
+          // Create the cut version for the clone
+          this.modelMeshes.push(new THREE.Mesh(this.viewer.geometry.modelMeshes[i].geometry.clone(), modelMat));
+          this.modelMeshes[i].originalVisible = this.viewer.geometry.modelMeshes[i].visible;
+          this.modelMeshes[i].position.copy(this.viewer.geometry.modelMeshes[i].position);
+          this.modelMeshes[i].renderOrder = 2;
+          this.viewer.scene.add(this.modelMeshes[i]);    
+          // Hide the initial models
+          this.viewer.geometry.modelMeshes[i].visible = false;
+        }
+        let modelLineMat = new THREE.LineBasicMaterial( { color: 0x000000, clippingPlanes: [ this.cutPlane ] });
+        for (let i = 0; i < this.viewer.geometry.edgesMeshes.length; i++) {
+            // Create the cut version for the clone
+            this.edgesMeshes.push(new THREE.LineSegments (this.viewer.geometry.edgesMeshes[i].geometry.clone(), modelMat));
+            this.edgesMeshes[i].originalVisible = this.viewer.geometry.edgesMeshes[i].visible;
+            this.edgesMeshes[i].position.copy(this.viewer.geometry.edgesMeshes[i].position);
+            this.edgesMeshes[i].renderOrder = 2;
+            this.viewer.scene.add(this.edgesMeshes[i]);    
+            // Hide the initial models
+            this.viewer.geometry.edgesMeshes[i].visible = false;
+          }
+      }
+
 
     FixStencilPlaneOrientation ()
     {
@@ -146,10 +169,16 @@ OV.CutPlane = class
     {
         this.mesh.visible = false;
 		this.viewer.scene.remove (this.mesh);
-        this.viewer.scene.remove (this.modelMesh);
+        for (let i = 0; i < this.modelMeshes.length; i++) {
+            this.viewer.scene.remove (this.modelMeshes[i]);
+            this.viewer.geometry.modelMeshes[i].visible = this.modelMeshes[i].originalVisible;
+        }
+        for (let i = 0; i < this.edgesMeshes.length; i++) {
+            this.viewer.scene.remove (this.edgesMeshes[i]);
+            this.viewer.geometry.edgesMeshes[i].visible = this.edgesMeshes[i].originalVisible;
+        }
         this.viewer.scene.remove (this.poGroup);
         this.viewer.scene.remove (this.stencilGroup);
-        this.viewer.geometry.modelMeshes[0].visible = true;
 
         this.viewer.Render ();
         this.slider.Dispose ();
