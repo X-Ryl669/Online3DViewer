@@ -27,7 +27,7 @@ OV.Embed = class
             if (color !== null) {
                 settings.defaultColor = color;
             }
-            this.viewer.UpdateSettings (settings);
+            this.viewer.UpdateEdgeSettings (settings);
             this.modelLoader.LoadFromUrlList (urls, settings);
             let hashParameters = OV.CreateModelUrlParameters (urls);
             let websiteUrl = this.parameters.websiteLinkDiv.attr ('href') + '#' + hashParameters;

@@ -4,9 +4,14 @@ OV.Init3DViewerElements = function (loadedCB)
     {
         let canvas = document.createElement ('canvas');
         element.appendChild (canvas);
-        let navCanvas = document.createElement ('canvas');
-        element.appendChild (navCanvas);
 
+        let hasNaveCube = element.getAttribute ('navcube');
+        let navCanvas = null;
+        if (hasNaveCube) {
+          navCanvas = document.createElement ('canvas');
+          element.appendChild (navCanvas);
+        }
+        
         let viewer = new OV.Viewer ();
         viewer.Init (canvas, navCanvas);
 
