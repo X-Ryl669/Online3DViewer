@@ -199,10 +199,10 @@ OV.Viewer = class
         this.geometry.edgesSettings = Object.assign ({}, settings);
     }
     
-    Init (canvas, navCubeCanvas)
+    Init (canvas, navCubeCanvas, zoomFactor)
     {
         this.canvas = canvas;
-        this.canvas.id = 'viewer';
+        this.canvas.classList.add('viewer');
 
         let parameters = {
             canvas : this.canvas,
@@ -221,6 +221,8 @@ OV.Viewer = class
 
         this.InitCamera ();
         this.InitLights ();
+
+        this.navigation.SetZoomFactor (zoomFactor);
         // Has to be after the camera is set up since it's adding to the camera
         if (navCubeCanvas !== null) {
             this.navCube = new OV.NavCube ({}, this, navCubeCanvas);
@@ -459,6 +461,7 @@ OV.Viewer = class
 
         let boundingSphere = new THREE.Sphere ();
         boundingBox.getBoundingSphere (boundingSphere);
+        this.navigation.SetBoundingSphereRadius (boundingSphere.radius);
         return boundingSphere;
     }
 

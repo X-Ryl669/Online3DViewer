@@ -11,9 +11,11 @@ OV.Init3DViewerElements = function (loadedCB)
           navCanvas = document.createElement ('canvas');
           element.appendChild (navCanvas);
         }
+
+        let zoomFactor = element.getAttribute ('zoomFactor');
         
         let viewer = new OV.Viewer ();
-        viewer.Init (canvas, navCanvas);
+        viewer.Init (canvas, navCanvas, zoomFactor);
 
         let width = element.clientWidth;
         let height = element.clientHeight;

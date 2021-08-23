@@ -146,7 +146,7 @@ OV.NavCube = class
         this.params.hoverColor = new THREE.Color(this.params.hoverColor);
         this.cubeMesh = new THREE.Mesh();
         this.canvas = canvas;
-        this.canvas.id = 'navcube';
+        this.canvas.classList.add('navcube');
         this.renderer = new THREE.WebGLRenderer ({ canvas : this.canvas, antialias : true, alpha: true });
         if (window.devicePixelRatio) {
             this.renderer.setPixelRatio (window.devicePixelRatio);

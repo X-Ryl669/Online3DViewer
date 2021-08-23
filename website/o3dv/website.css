@@ -137,7 +137,7 @@ div.main_viewer canvas
 	display: block;
 }
 
-div.main_viewer #navcube 
+div.main_viewer .navcube 
 {
 	position: absolute;
 	top: 0px;

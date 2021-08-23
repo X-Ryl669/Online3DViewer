@@ -40,7 +40,7 @@ OV.CutPlane = class
                                                      function(e){ this.viewer.Render() }.bind(this));
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.anisotropy = this.viewer.renderer.capabilities.getMaxAnisotropy();
-        texture.repeat.set(25,25);
+        texture.repeat.set(150,150);
         texture.rotation = Math.PI / 7;
 
         let planeMat = new THREE.MeshBasicMaterial({ 

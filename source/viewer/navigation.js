@@ -238,6 +238,8 @@ OV.Navigation = class
 		this.camera = camera;
 		this.orbitCenter = this.camera.center.Clone ();
 		this.fixUpVector = true;
+		this.boundingSphereRadius = null;
+		this.zoomFactor = null;
 
 		this.mouse = new OV.MouseInteraction ();
 		this.touch = new OV.TouchInteraction ();
@@ -260,6 +262,20 @@ OV.Navigation = class
 			document.addEventListener ('mouseup', this.OnMouseUp.bind (this));
 			document.addEventListener ('mouseleave', this.OnMouseLeave.bind (this));
 		}		
+	}
+
+	SetZoomFactor (zoomFactor)
+	{
+		if (zoomFactor !== null) {
+			this.zoomFactor = parseInt(zoomFactor);
+		}
+	}
+
+	SetBoundingSphereRadius (radius)
+	{
+		if (this.zoomFactor !== null) {
+			this.boundingSphereRadius = radius;
+		}
 	}
 
 	SetUpdateHandler (onUpdate)
@@ -545,9 +561,21 @@ OV.Navigation = class
 
 	Zoom (ratio)
 	{
+		if (this.zoomFactor === 0) {
+			return;
+		}
+
 		let direction = OV.SubCoord3D (this.camera.center, this.camera.eye);
 		let distance = direction.Length ();
 		let move = distance * ratio;
+		
+		let zoomLimits = { min: this.zoomFactor * this.boundingSphereRadius / 100, max: (10 * this.zoomFactor) * this.boundingSphereRadius };
+        if (this.boundingSphereRadius !== null && distance < zoomLimits.min) {
+            this.camera.eye = this.camera.center.Clone ().Offset (direction, -zoomLimits.min);
+        }
+        if (this.boundingSphereRadius !== null && distance > zoomLimits.max) {
+            this.camera.eye = OV.AddCoord3D(this.camera.center, direction.Clone().MultiplyScalar (-zoomLimits.max / distance));
+        }
 		this.camera.eye.Offset (direction, move);
 	}
 
